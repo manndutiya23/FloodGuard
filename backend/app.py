@@ -6,7 +6,7 @@ and a clearly qualified prototype heuristic risk endpoint.
 from __future__ import annotations
 
 import csv
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -91,7 +91,7 @@ def _forecast_signal(weather: dict[str, Any]) -> dict[str, Any] | None:
             continue
 
     future_hours = sorted(
-        [(valid_at, amount) for valid_at, amount in parsed if now <= valid_at < now.replace(minute=0, second=0, microsecond=0) + __import__("datetime").timedelta(hours=7)],
+        [(valid_at, amount) for valid_at, amount in parsed if now <= valid_at < now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=7)],
         key=lambda item: item[0],
     )[:6]
 
