@@ -210,7 +210,7 @@ The risk engine is a pure, independently testable calculation module. It should 
 
 ### Input object
 
-The backend supplies an object with the following conceptual shape. Optional inputs may be `null) when unavailable; absence must never be silently replaced with zero.
+The backend supplies an object with the following conceptual shape. Optional inputs may be `null` when unavailable; absence must never be silently replaced with zero.
 
 ```json
 {
