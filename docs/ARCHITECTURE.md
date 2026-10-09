@@ -1,320 +1,223 @@
-# FloodGuard API Contract
+# FloodGuard System Architecture
 
 **Project:** FloodGuard — Mumbai Hyperlocal Flood Intelligence  
-**Status:** Checkpoint 0 — Draft for implementation  
-**Version:** 1.0
+**Status:** Proposed architecture — implementation in progress  
+**Version:** 1.1
 
 ## 1. Purpose
 
-This document defines how the FloodGuard frontend, backend, data layer, and risk engine communicate.
+This document describes the planned system components, their responsibilities, and how data moves through FloodGuard. It is an implementation guide, not a claim that every component is already deployed.
 
-The goal is to allow all team members to work independently using agreed request formats, response schemas, and sample data.
+The MVP combines a historical ward-level exposure baseline with available weather-model data and citizen incident reports to produce an explainable, explicitly qualified risk assessment.
 
-Any changes to these shared interfaces must be communicated to the team and reflected in this document and the relevant tests.
+## 2. Architecture at a glance
 
-## 2. General conventions
-
-- API requests and responses use JSON unless otherwise specified.
-- Timestamps use ISO 8601 format in UTC, ending in `Z`.
-- Geographic coordinates use decimal degrees.
-- Risk scores range from 0 to 100 when a score can be calculated.
-- Risk levels are `low`, `moderate`, `high`, or `unknown`.
-- Missing values must be represented as `null`, not as fabricated measurements.
-- Historical vulnerability, current environmental signals, and citizen reports must remain distinguishable.
-- Simulated inputs and outputs must be explicitly identified.
-- The backend is responsible for validating requests and generating report IDs and timestamps.
-
-## 3. Common error format
-
-All API errors should follow this structure:
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "The request contains invalid fields."
-  },
-  "request_id": "example-request-id"
-}
+```text
+                    Open-Meteo Forecast API
+                              |
+                              v
+                    Python data adapter
+              fetch -> validate -> normalize
+                              |
+                              v
+Historical ward CSV ---> Risk engine <--- Incident reports
+                              |
+                              v
+                       FloodGuard API
+                              |
+                              v
+                      React / Vite UI
+                ward view, map, explanations
 ```
 
-`request_id` may be omitted if unavailable.
+Planned AWS deployment:
 
-Never expose credentials, secret configuration, or internal stack traces in API responses.
-
-## 4. Historical ward exposure data
-
-### GET /wards
-
-Returns historical ward-level exposure information from the reference dataset.
-
-The source CSV uses these actual fields:
-
-| Field | Meaning |
-|---|---|
-| `ward_code` | Ward identifier from the source dataset |
-| `population_potentially_exposed_within_250m_buffer` | Number of people potentially exposed within the assessed flood-risk buffer |
-| `percentage_of_ward_population_potentially_exposed_percent` | Percentage of the ward population potentially exposed |
-| `source` | Source report |
-| `source_table` | Source table reference |
-| `source_page` | Source page number |
-| `underlying_population_data_year` | Year of the underlying population data |
-| `data_type` | Classification of the dataset |
-
-These source fields must be preserved during ingestion. The backend may add clearly documented API metadata, but must not silently rename or reinterpret the source measurements.
-
-### Example response
-
-```json
-{
-  "data": [
-    {
-      "ward_code": "A",
-      "population_potentially_exposed_within_250m_buffer": null,
-      "percentage_of_ward_population_potentially_exposed_percent": null,
-      "source": "Mumbai Climate Action Plan vulnerability assessment",
-      "source_table": "112",
-      "source_page": 112,
-      "underlying_population_data_year": 2011,
-      "data_type": "historical_vulnerability_baseline"
-    }
-  ],
-  "meta": {
-    "data_type": "historical_vulnerability_baseline"
-  }
-}
+```text
+React / Vite frontend
+        |
+        | HTTPS + JSON
+        v
+Amazon API Gateway (HTTP API)
+        |
+        v
+AWS Lambda (Python)
+   |       |        |
+   |       |        +--> Amazon CloudWatch (logs and errors)
+   |       |
+   |       +--> Amazon DynamoDB (incident reports, if selected)
+   |
+   +--> Open-Meteo API (weather-model data)
+   +--> S3 (reference data or snapshots, if needed)
+   
+Optional later: EventBridge for scheduled refreshes; SNS for useful alerts.
 ```
 
-**This is a schema example, not an actual ward record.** The `null` measurements must be replaced with verified values from the CSV when the API is implemented. The example's source metadata must also be checked against the actual CSV before use.
+The diagram shows the intended design. AWS resources must be created and tested before being described as deployed.
 
-### Display requirements
+## 3. Component responsibilities
 
-The frontend should display both:
+### 3.1 Frontend — React and Vite
 
-1. The number of people potentially exposed.
-2. The percentage of the ward population potentially exposed.
+The frontend is responsible for:
+- Showing historical ward exposure separately from current risk.
+- Displaying risk level, score when calculable, reasons, and source/data status.
+- Showing the timestamp and whether results are simulated.
+- Providing the incident-report submission flow.
+- Showing ward geography only after a suitable boundary dataset is verified.
+- Presenting unavailable or stale data honestly.
 
-These values describe historical assessed exposure, not the number of people currently experiencing flooding.
-
-The interface must clearly label the figures as historical and show the underlying population-data year where available.
+The frontend consumes the shared API contract and can be developed initially with mock JSON. It must not calculate a separate risk score that disagrees with the backend.
 
-A ward with a higher historical exposure value must not automatically be described as experiencing a current flood.
+### 3.2 Backend API — Python on AWS Lambda
 
-## 5. Current flood-risk assessment
+The backend is responsible for:
+- Exposing the agreed HTTP endpoints through API Gateway.
+- Validating requests and normalizing response formats.
+- Loading the historical reference dataset.
+- Fetching or receiving normalized environmental inputs.
+- Calling the independently testable risk engine.
+- Reading and writing incident reports when persistence is implemented.
+- Returning data freshness, provenance, and simulation metadata.
+- Logging operational failures without exposing secrets or sensitive details.
 
-### GET /risk
+The initial runtime decision is Python because the risk engine and data-processing work are naturally implemented and tested in Python. Local development should use the same application logic as Lambda wherever practical.
 
-Returns the risk assessment produced by the risk engine.
+### 3.3 Weather adapter — Open-Meteo
 
-The assessment may use available rainfall information, historical vulnerability, and relevant citizen incident reports.
+Open-Meteo is the initial candidate for forecast/model data. The adapter should:
+1. Request the selected Mumbai coordinates and required hourly precipitation fields.
+2. Parse the provider response and preserve the requested coordinates and returned/grid-location metadata where available.
+3. Keep forecast valid times distinct from retrieval time.
+4. Validate units, missing values, and response shape.
+5. Mark the result with its source, retrieval time, valid period, and data status.
+6. Return an unavailable/stale state on failure rather than fabricating zero rainfall.
 
-The exact calculation method, thresholds, input schema, and missing-data rules must be documented separately in the risk-engine implementation.
+Forecast-model output is not the same as a direct rain-gauge observation. Do not label it “measured rainfall.” Begin with a single documented representative location for a reliable vertical slice; expand to multiple locations only when ward/location mapping is defensible. A single point must not be presented as a separate measurement for every ward.
 
-### Example response
-
-```json
-{
-  "data": [
-    {
-      "ward_code": "A",
-      "risk_score": null,
-      "risk_level": "unknown",
-      "reasons": [],
-      "data_status": {
-        "rainfall": "unavailable",
-        "historical_baseline": "available",
-        "reports": "unavailable"
-      },
-      "calculated_at": "2026-10-09T10:00:00Z",
-      "is_simulated": true,
-      "method": "heuristic"
-    }
-  ],
-  "meta": {
-    "data_mode": "simulation"
-  }
-}
-```
+### 3.4 Risk engine — independent Python module
 
-This example demonstrates an unknown risk result when current signals are unavailable. Its timestamp and status values are illustrative.
+The risk engine is a pure, independently testable module. It should accept structured inputs and return a structured assessment without making HTTP calls or writing to a database.
 
-### Requirements
+Inputs may include:
+- Historical ward exposure and its provenance.
+- Weather-model precipitation values, units, valid period, source, and freshness.
+- Relevant citizen reports, including recency, verification status, and simulation flag.
+- The assessment timestamp.
 
-- Historical exposure and current risk must be displayed as separate measures.
-- Every risk result must provide an explanation where one can be calculated.
-- A score must not be invented when the required inputs are unavailable.
-- `unknown` is a valid result and must not be converted into `low`.
-- The frontend must identify simulated assessments.
-- Risk scores must not be presented as calibrated flood probabilities unless a suitable model has been trained and evaluated to support that interpretation.
+Outputs should include:
+- `ward_code`
+- `risk_score` (0–100 only when calculable; otherwise `null`)
+- `risk_level` (`low`, `moderate`, `high`, or `unknown`)
+- `reasons`
+- Per-input `data_status`
+- `calculated_at`
+- `is_simulated`
+- `method`
 
-## 6. Citizen incident reports
+The score is an explainable heuristic, not a calibrated flood probability. The team must document and test weights, thresholds, and freshness rules before the score is used in the demo. Historical exposure alone cannot establish current flood risk. Missing or stale critical inputs must not silently become zero or low risk.
 
-### GET /reports
+### 3.5 Historical reference data
 
-Returns incident reports, with optional filters:
+The initial ward exposure CSV is a transcribed historical baseline associated with Census 2011 and a 250-metre exposure-buffer methodology. Preserve its original field names and provenance. Verify the transcription against the source report before presenting its exact figures as verified.
 
-- `ward_code`: filter by ward.
-- `status`: filter by workflow status.
-- `limit`: maximum number of results, subject to a server-side limit.
+The dataset does not provide live flood locations, current ward population, or a validated probability of flooding.
 
-Example response:
+### 3.6 Incident reports and persistence
 
-```json
-{
-  "data": [
-    {
-      "report_id": "example-report-id",
-      "ward_code": "A",
-      "latitude": 19.0760,
-      "longitude": 72.8777,
-      "category": "waterlogging",
-      "description": "Water accumulating near Gate 2",
-      "status": "new",
-      "verification_status": "unverified",
-      "reported_at": "2026-10-09T10:00:00Z",
-      "is_simulated": true
-    }
-  ]
-}
-```
+The proposed API supports submitting reports and updating their workflow status. New reports start as unverified. Workflow status (`new`, `reviewed`, `resolved`) is separate from verification status (`unverified`, `verified`).
 
-The example location and report are illustrative, not a real incident.
+DynamoDB is the proposed store for report records if persistence is required by the MVP. Until it is implemented, local/in-memory or fixture-backed behaviour must be identified as prototype or simulated behaviour. Responder-only updates require authorization before any public deployment.
 
-### POST /reports
+### 3.7 AWS storage and observability
 
-Creates a citizen incident report.
+- **API Gateway HTTP API:** public HTTPS entry point for the API.
+- **AWS Lambda (Python):** request handling, data adapter, and risk-engine orchestration.
+- **Amazon DynamoDB:** candidate persistence layer for incident reports.
+- **Amazon S3:** optional storage for reference files or dated ingestion snapshots where versioning and object storage are useful.
+- **Amazon CloudWatch:** Lambda logs, errors, and operational monitoring.
+- **Amazon EventBridge:** optional scheduled weather refresh if caching/scheduled ingestion proves useful.
+- **Amazon SNS:** optional notifications only if a real alert workflow is implemented.
 
-Example request:
+Do not add a service merely to increase the AWS service count. Every deployed service should support a demonstrated requirement. Prefer IAM execution roles over embedded AWS credentials, and never commit credentials to Git.
 
-```json
-{
-  "latitude": 19.0760,
-  "longitude": 72.8777,
-  "category": "waterlogging",
-  "description": "Water accumulating near Gate 2",
-  "is_simulated": true
-}
-```
+## 4. Main data flow
 
-The backend must validate coordinates, required fields, description length, and supported categories.
+1. The frontend requests ward baseline, risk assessments, and reports from the API.
+2. The backend loads verified historical exposure values.
+3. The weather adapter fetches and validates forecast/model data from Open-Meteo.
+4. The backend gathers applicable incident reports and their status metadata.
+5. The risk engine evaluates the available inputs and returns a score only when its rules permit one.
+6. The API returns the result, explanation, source status, timestamps, and simulation labels.
+7. The frontend displays historical exposure and current assessment as separate concepts.
 
-The backend generates the report ID and timestamp. It must not automatically mark a new report as verified.
+For the initial local vertical slice, weather retrieval can be tested independently before it is connected to the risk engine. The application should remain useful for viewing historical baseline data when weather retrieval fails, but it must clearly state that current risk is unknown or unavailable.
 
-Example success response:
-
-```json
-{
-  "data": {
-    "report_id": "generated-report-id",
-    "status": "new",
-    "verification_status": "unverified",
-    "reported_at": "2026-10-09T10:00:00Z",
-    "is_simulated": true
-  }
-}
-```
-
-Use HTTP `201 Created` for a successfully created report.
-
-## 7. Responder workflow
-
-### PATCH /reports/{id}
-
-Updates the workflow status of an existing report.
-
-Example request:
-
-```json
-{
-  "status": "reviewed"
-}
-```
-
-Supported workflow statuses:
-
-- `new`
-- `reviewed`
-- `resolved`
-
-The backend must validate the report ID and requested status.
-
-Workflow status and verification status are separate fields. Reviewing a report does not automatically prove that the reported incident occurred.
-
-The final implementation must define appropriate authorization for responder-only updates.
-
-## 8. Risk-engine interface
-
-The risk engine must be independently testable without the API or frontend.
-
-Its input must contain the environmental signals and historical vulnerability information available for the assessment, together with relevant source, timestamp, and freshness metadata.
-
-Its output must contain:
-
-- `ward_code` or another documented location identifier.
-- `risk_score`, if calculable.
-- `risk_level`.
-- `reasons`.
-- `data_status`.
-- `calculated_at`.
-- `is_simulated`.
-- `method`.
-
-The exact input schema, score normalization, weights, thresholds, and missing-data rules remain decisions for Checkpoint 0.
-
-The risk engine must not interpret the historical exposure count or percentage as a labelled flood probability.
-
-## 9. Health check
-
-### GET /health
-
-Checks whether the API is responding.
-
-Example response:
-
-```json
-{
-  "status": "ok",
-  "service": "floodguard-api"
-}
-```
-
-A successful health check indicates that the API is responding. It does not necessarily mean every external data source is available.
-
-## 10. HTTP status codes
-
-Use appropriate HTTP status codes:
-
-- `200 OK`: successful retrieval or update.
-- `201 Created`: report successfully created.
-- `400 Bad Request`: invalid request.
-- `404 Not Found`: resource does not exist.
-- `429 Too Many Requests`: request limit exceeded, where configured.
-- `500 Internal Server Error`: unexpected server failure.
-
-Error responses must use the common error structure defined in Section 3.
-
-## 11. Independent development and testing
-
-Each workstream must be testable without requiring the others to finish first.
-
-- **Frontend:** use mock JSON responses that follow this contract.
-- **Risk engine:** use local test fixtures with known inputs and expected outputs.
-- **Backend:** test endpoints independently using sample requests.
-- **Documentation and demo:** use the contract to describe planned behaviour, but label features as implemented only after verification.
-
-Integration begins once each component has a demonstrable independent version.
-
-## 12. Decisions required before contract freeze
-
-The team must confirm:
-
-1. The exact CSV field values and provenance.
-2. The final risk-engine input and output schema.
-3. Supported incident categories.
-4. Missing-data and stale-data conventions.
-5. Backend runtime and local testing approach.
-6. Persistence and deployment configuration.
-7. Authorization requirements for responder operations.
-8. The final definition of simulated versus real data.
-
-Until these decisions are approved, this document remains the proposed integration contract. Implementation details may be refined at Checkpoint 0, but all changes must be shared with the team.
+## 5. API boundary
+
+The shared interface is documented in [API_CONTRACT.md](API_CONTRACT.md). Planned endpoints:
+- `GET /health`
+- `GET /wards`
+- `GET /risk`
+- `GET /reports`
+- `POST /reports`
+- `PATCH /reports/{id}`
+
+The API contract is the source of truth for response fields. Any changes must be agreed with the team and reflected in mock data and tests.
+
+## 6. Configuration and security
+
+- Use environment variables for non-secret configuration.
+- Keep local populated `.env` files out of Git.
+- Never expose server-only secrets through `VITE_*` variables; those values are bundled into frontend code.
+- Use IAM roles for AWS service access.
+- Validate report coordinates, category, description length, and all query parameters.
+- Apply appropriate request limits and input validation.
+- Restrict responder operations with authorization before treating the app as a real public service.
+- Avoid collecting unnecessary personal data.
+
+## 7. Failure and freshness behaviour
+
+The system must distinguish `available`, `unavailable`, `stale`, and `simulated` inputs. Exact freshness thresholds must be based on provider update behaviour and documented before implementation.
+
+If Open-Meteo cannot be reached, returns invalid data, or supplies data outside the accepted freshness policy:
+- Do not substitute zero rainfall.
+- Preserve the source failure/status.
+- Do not claim a current risk level from historical exposure alone.
+- Return an unknown/unavailable assessment where required.
+- Keep historical baseline information available with its historical label.
+
+A successful `GET /health` only confirms the API is responding; it does not guarantee that weather data or persistence is available.
+
+## 8. Test strategy
+
+Minimum checks:
+- Python unit tests for risk-engine inputs and outputs.
+- Weather-adapter tests for valid, missing, malformed, stale, and failed provider responses.
+- API tests for the agreed JSON contract and validation errors.
+- Report tests for invalid coordinates, unsupported categories, and unverified-by-default behaviour.
+- Tests for missing/stale rainfall, no reports, unverified reports, and simulated inputs.
+- Frontend checks for unknown-risk and data-status presentation.
+- AWS smoke tests after deployment, including a health check and one real end-to-end request.
+
+Use saved fixtures for deterministic tests; live provider calls should be a separate integration test, not the only test.
+
+## 9. Team integration checkpoints
+
+1. **Checkpoint 0 — contract agreement:** confirm endpoint schemas, risk-engine interface, data status meanings, runtime, and source choice.
+2. **Checkpoint 1 — independent skeletons:** frontend mock screens, Python API skeleton, weather-adapter proof, and risk-engine module can run independently.
+3. **Checkpoint 2 — demonstrable components:** each workstream records a short local demo and tests.
+4. **Checkpoint 3 — local integration:** frontend calls the local API; API calls the risk engine; response schemas match.
+5. **Checkpoint 4 — AWS integration:** deploy only the components needed for the end-to-end flow and verify permissions/logging.
+6. **Checkpoint 5 — feature freeze and release:** stop adding features, fix blockers, verify all claims, and capture the actual working app for the demo video.
+
+## 10. Current status and next actions
+
+This document describes a proposed architecture; it does not certify that the API, weather adapter, risk engine, database, or AWS deployment is already operational.
+
+Immediate implementation order:
+1. Confirm the team accepts Python and Open-Meteo as the initial choices.
+2. Create the Python backend skeleton and local health endpoint.
+3. Make one real Open-Meteo request for a documented Mumbai point and record the response fields/units.
+4. Add deterministic weather-adapter tests using fixtures.
+5. Implement the risk-engine interface against the agreed contract.
+6. Connect the local API and frontend before deploying to AWS.
