@@ -1,364 +1,221 @@
 # FloodGuard Data Sources and Provenance
 
-**Project:** FloodGuard — Mumbai Hyperlocal Flood Intelligence
-**Status:** Checkpoint 0 — Data inventory and verification plan
-**Version:** 1.0
+**Project:** FloodGuard — Mumbai Hyperlocal Flood Intelligence  
+**Status:** Checkpoint 0 — data inventory and verification plan  
+**Version:** 1.1
 
 ## 1. Purpose
 
-This document records the data available to FloodGuard, its provenance, its intended use, and its limitations.
+This document records each source's intended use, provenance, access requirements, and limitations. A source listed as a candidate is not considered integrated or verified until the team has tested access and suitability.
 
-Every dataset used by the application must have a documented source, geographic coverage, relevant time period, and known limitations.
+FloodGuard must distinguish historical reference data, weather-model forecasts, direct observations, and citizen-submitted reports. They are different kinds of evidence and must not be presented as interchangeable.
 
-Data sources listed as candidates in this document are not considered integrated or verified until the team has confirmed their availability and suitability.
-
-## 2. Current reference dataset: Mumbai ward-level flood exposure
+## 2. Historical reference dataset: Mumbai ward-level flood exposure
 
 ### Dataset file
 
-`data/reference/floodguard_mumbai_ward_flood_exposure.csv`
+- `data/reference/floodguard_mumbai_ward_flood_exposure.csv`
+- `data/reference/floodguard_mumbai_ward_flood_exposure_README.md`
 
-Supporting documentation:
+### Source and provenance
 
-`data/reference/floodguard_mumbai_ward_flood_exposure_README.md`
+The dataset was transcribed from a ward-level exposure table in the Mumbai Climate Action Plan's *Climate & Air Pollution Risks and Vulnerability Assessment* report, identified as printed page 112. The source note describes WRI India analysis using BMC data and Census 2011 population data.
 
-### Source
-
-The dataset was transcribed from the ward-level exposure table in the Mumbai Climate Action Plan's *Climate & Air Pollution Risks and Vulnerability Assessment* report.
-
-The source table is identified as appearing on printed page 112 of the report.
-
-The original report is available among the project's reference materials. The transcribed values should be checked against the source table before being used as verified public-facing figures.
+The transcribed values must be checked against the original source table before exact figures are presented as verified public-facing facts.
 
 ### Available fields
 
-| Field                                                       | Description                                                                |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `ward_code`                                                 | Ward identifier in the source dataset                                      |
-| `population_potentially_exposed_within_250m_buffer`         | Number of people potentially exposed within the assessed flood-risk buffer |
-| `percentage_of_ward_population_potentially_exposed_percent` | Percentage of the ward population potentially exposed                      |
-| `source`                                                    | Source report                                                              |
-| `source_table`                                              | Source table reference                                                     |
-| `source_page`                                               | Source page reference                                                      |
-| `underlying_population_data_year`                           | Year of the underlying population data                                     |
-| `data_type`                                                 | Classification of the dataset                                              |
-
-The implementation must preserve these source field names unless a documented transformation is agreed upon.
+| Field | Description |
+|---|---|
+| `ward_code` | Ward identifier in the source dataset |
+| `population_potentially_exposed_within_250m_buffer` | People potentially exposed within the assessed flood-risk buffer |
+| `percentage_of_ward_population_potentially_exposed_percent` | Percentage of the ward population potentially exposed |
+| `source` | Source report |
+| `source_table` | Source table reference |
+| `source_page` | Source page reference |
+| `underlying_population_data_year` | Year of the underlying population data |
+| `data_type` | Dataset classification |
 
 ### Intended use
 
-The dataset provides a historical ward-level exposure baseline.
+- Display the historical count and percentage where available.
+- Compare historical exposure measures between wards.
+- Provide context alongside separately calculated current assessments.
 
-FloodGuard can use it to:
+The 250-metre buffer is part of the source assessment methodology. It is not a live flood boundary. These data do not tell us the number of people currently affected, current population, street-level flooding, or the probability that a ward will flood during a particular event.
 
-- Display the number of people potentially exposed.
-- Display the corresponding percentage of the ward population.
-- Compare the historical exposure measures between wards.
-- Provide context alongside separately calculated current risk assessments.
+### Verification checklist
 
-Both the count and percentage should be displayed where the values are available.
+- [ ] Compare every ward code and value with the original report.
+- [ ] Confirm units, source note, table/page reference, and population-data year.
+- [ ] Check for missing values, duplicate ward codes, and transcription errors.
+- [ ] Record discrepancies and corrections.
 
-### Important limitations
+Until complete, describe the CSV as transcribed historical reference data.
 
-This dataset does **not** independently tell us:
+## 3. Weather source candidate: Open-Meteo Forecast API
 
-- How many people are experiencing flooding right now.
-- Whether a particular street is currently flooded.
-- The probability that a ward will flood during a particular rainfall event.
-- The current population of each ward.
-- Whether current drainage conditions or flood defences have changed the exposure.
-- The exact location of every potentially exposed person.
+**Decision:** Initial provider candidate for the hackathon prototype; integration and suitability testing are still pending.  
+**Official API documentation:** https://open-meteo.com/en/docs  
+**Official pricing and usage terms:** https://open-meteo.com/en/pricing  
+**Provider source code / documentation repository:** https://github.com/open-meteo/open-meteo
 
-The 250-metre buffer refers to the assessment's mapped exposure methodology. It must not be interpreted as a live flood boundary or a guarantee that every person counted will be affected.
+### Why investigate it
 
-The underlying population information is historical and associated with Census 2011. These figures must not be presented as current population counts.
+Open-Meteo provides forecast/model data through an HTTP API and supports hourly weather variables including precipitation. The prototype can test a request without first provisioning a weather-provider API key, subject to the provider's current usage terms and limits. This reduces setup friction while the team establishes the first end-to-end data flow.
 
-### Verification status
+### Proposed initial use
 
-The file has been prepared from a source report and has accompanying documentation. Before the values are treated as verified:
+Start with one documented representative point in Mumbai and request the precipitation fields and timestamps needed by the first risk-engine version. Record:
+- Provider and API endpoint.
+- Requested latitude and longitude.
+- Returned coordinates or grid/model location, where supplied.
+- Variable names and units (for example, precipitation in millimetres).
+- Forecast valid timestamps and timezone.
+- Retrieval timestamp in UTC.
+- Response status and validation outcome.
+- Whether the result is real provider data or a test fixture.
 
-1. Compare all ward codes and measurements against the source table.
-2. Confirm the meaning and units of both exposure fields.
-3. Confirm the source-page reference and underlying population year.
-4. Check for missing values, duplicate ward codes, and transcription errors.
-5. Record any discrepancies and corrections.
+Only expand to multiple points after the team has a defensible location strategy and has tested response reliability. Do not imply that one point is an independent rain measurement for every Mumbai ward.
 
-Until this verification is complete, the data should be described as transcribed historical reference data.
+### Critical interpretation limits
 
-## 3. Original source report
+- Forecast output is weather-model data, not necessarily a direct measurement from a rain gauge.
+- A forecast value must be labelled as forecast/model output and paired with its valid time or period.
+- Provider coordinates may correspond to a nearby model grid cell rather than the exact requested point. Preserve provider metadata and do not claim street-level precision.
+- Precipitation alone does not prove flooding or waterlogging; drainage, terrain, tide, and local conditions may also matter.
+- Availability, spatial resolution, forecast horizons, and update behaviour depend on the product and endpoint actually used. Verify them during integration.
+- Do not describe the weather source as a validated flood-prediction service.
 
-### Source
+### Usage and attribution
 
-*Climate & Air Pollution Risks and Vulnerability Assessment*, associated with the Mumbai Climate Action Plan.
+The provider's free access is subject to its published eligibility, rate limits, and usage conditions; the free tier is intended for non-commercial use and does not promise an uptime guarantee. Confirm the current terms before the demo or any wider deployment. Include the attribution required by the selected service/terms in the application and documentation. Do not assume the free tier is suitable for commercial operation.
 
-### Intended use
+### Integration acceptance checklist
 
-The original report provides the context and methodology behind the ward-level exposure figures. It should be consulted whenever the team needs to interpret a source field or explain the dataset's limitations.
+- [ ] Make a real request from the local Python backend.
+- [ ] Confirm the exact endpoint, fields, units, timezone, and returned location metadata.
+- [ ] Store the retrieval timestamp separately from forecast valid timestamps.
+- [ ] Handle timeout, HTTP errors, malformed JSON, missing variables, and missing values.
+- [ ] Decide and document freshness/validity rules based on the selected data fields.
+- [ ] Add deterministic tests using saved fixtures.
+- [ ] Display provider attribution and a clear forecast/model-data label.
+- [ ] Record the date the team checked provider terms and source behaviour.
 
-### Handling requirements
+Until these checks pass, Open-Meteo remains a selected candidate rather than a completed integration.
 
-- Preserve the report's title and source attribution.
-- Cite the relevant page when describing a specific finding.
-- Do not imply that the report provides live flood forecasts unless a specific source passage supports that claim.
-- Check redistribution and licensing conditions before committing the complete report to the public GitHub repository.
-- Keep the report in the team's permitted reference storage if it cannot be redistributed publicly.
+## 4. Direct rainfall observations — separate future investigation
 
-## 4. Environmental data needed for current risk assessment
+**Status:** Not selected or integrated.
 
-The historical dataset alone is insufficient to establish current flood risk. FloodGuard must investigate additional data sources.
+Direct observations are measurements reported by a rain gauge or observation network. If the team finds a suitable official source, record its station/location, observation interval, units, timestamp, geographic coverage, update frequency, and missing-data behaviour.
 
-The following are candidate categories to investigate. They are not confirmed integrations.
+Do not label Open-Meteo forecast/model output as observed rainfall. If no suitable observation feed is accessible in the hackathon window, the product should be explicit that its current weather input is model/forecast data rather than a live rain-gauge measurement.
 
-### 4.1 Rainfall observations
+Potential organisations to investigate include the India Meteorological Department (IMD) and relevant municipal sources. Mentioning an organisation does not establish that a specific open, usable API or dataset is available.
 
-**Purpose:** Understand rainfall that has already occurred.
+## 5. Historical flood and waterlogging records
 
-Information to investigate:
+**Status:** Candidate category; source not yet verified.
 
-- Rainfall amount.
-- Measurement interval.
-- Observation timestamp.
-- Geographic coverage.
-- Station or grid location.
-- Missing measurements and update frequency.
+Potential use: historical context and, if the records are sufficiently detailed and reliable, later evaluation of risk logic.
 
-Rainfall observations must be labelled with their actual observation period. Recent rainfall is not equivalent to forecast rainfall.
+Before accepting a dataset, verify incident date/time, location accuracy, incident type, source, verification status, coverage, reuse terms, and missing records. Historical incidents must not be displayed as live reports. Do not claim predictive model validation without suitable outcome labels and a documented evaluation.
 
-### 4.2 Rainfall forecasts
+## 6. Ward boundaries and geospatial data
 
-**Purpose:** Assess potential future rainfall conditions.
+**Status:** Required for a reliable ward choropleth; suitable source not yet accepted.
 
-Information to investigate:
+Find a ward-boundary dataset with clear provenance, permitted usage, coordinate reference system, and boundary vintage. Verify ward codes against the reference CSV before joining. Do not guess a polygon-to-ward match based only on names or visual proximity.
 
-- Forecast rainfall amount.
-- Forecast issue time.
-- Forecast valid period.
-- Geographic resolution.
-- Update frequency.
-- Availability and access restrictions.
+Elevation or terrain data may be investigated later, but elevation alone does not establish flood probability. Any derived indicator needs a documented method and limitations.
 
-Forecast data must be displayed as forecasts, with the relevant valid period. It must not be labelled as observed rainfall.
+## 7. Citizen-submitted reports
 
-### 4.3 Historical flood and waterlogging records
+Citizen reports are generated by the application, not an authoritative external environmental feed.
 
-**Purpose:** Provide historical context and, where sufficiently detailed, support evaluation of risk logic.
-
-Information to investigate:
-
-- Incident location.
-- Incident date and time.
-- Source and verification status.
-- Incident type.
-- Geographic accuracy.
-- Coverage and missing records.
-- Terms governing reuse.
-
-Historical incident records must not be presented as current incidents.
-
-### 4.4 Geographic and terrain data
-
-**Purpose:** Improve geographic context and investigate whether elevation or terrain contributes useful information.
-
-Information to investigate:
-
-- Geographic coverage.
-- Spatial resolution.
-- Coordinate reference system.
-- Source date.
-- Licensing.
-- Suitability for the intended analysis.
-
-Elevation alone does not establish flood probability. Any derived geographic indicator must be explained and evaluated.
-
-### 4.5 Administrative ward boundaries
-
-**Purpose:** Display ward-level results accurately on the map.
-
-The team must find a suitable ward-boundary dataset with clear provenance and permitted usage.
-
-Before integration, verify:
-
-- Ward naming and codes.
-- Geographic coverage.
-- Coordinate reference system.
-- Boundary vintage.
-- Licensing and attribution requirements.
-- Compatibility with the reference CSV.
-
-Ward codes must not be joined to geographic polygons based on assumptions alone. Any unmatched records must be investigated.
-
-## 5. Candidate source discovery
-
-The team may investigate the following organisations and portals for relevant data:
-
-- India Meteorological Department (IMD) for rainfall and weather information.
-- Municipal Corporation of Greater Mumbai (BMC) for municipal information and potentially available ward or flood-related records.
-- Relevant government open-data portals.
-- Suitable geographic-data providers for ward boundaries and terrain information.
-
-These are starting points for research, not confirmation that a specific dataset or API is freely accessible, sufficiently current, or suitable for this project.
-
-For each candidate source, record:
-
-1. Exact dataset or API name.
-2. Official URL.
-3. Provider and attribution.
-4. Access method and any required credentials.
-5. Geographic and temporal coverage.
-6. Update frequency.
-7. Licensing and usage restrictions.
-8. Known data-quality limitations.
-9. Date checked by the team.
-10. Decision: accepted, rejected, or pending verification.
-
-Do not build a critical workflow around a source until access and suitability have been tested.
-
-## 6. Citizen-submitted reports
-
-Citizen reports are application-generated records rather than an authoritative external environmental dataset.
-
-Each report should preserve:
-
-- Report identifier.
-- Submitted coordinates, where available.
-- Incident category.
-- Description.
+Preserve:
+- Report identifier and coordinates, where supplied.
+- Category and description.
 - Submission timestamp.
-- Workflow status.
-- Verification status.
+- Workflow status (`new`, `reviewed`, `resolved`).
+- Verification status (`unverified`, `verified`).
 - Whether the report is simulated.
 
-### Trust and quality rules
+Trust rules:
+- A new report remains unverified until an appropriate verification process occurs.
+- Multiple reports may refer to one incident.
+- Incorrect locations or descriptions are possible.
+- A report does not by itself prove that flooding occurred.
+- Simulated reports must be clearly labelled.
+- Collect no unnecessary personal information.
 
-- A submitted report is unverified until appropriate verification occurs.
-- Multiple reports may describe the same incident.
-- Incorrect coordinates or inaccurate descriptions may occur.
-- A report's existence does not prove that an area is flooded.
-- Simulated reports must be visibly identified.
-- Personal information should not be collected unless it is necessary for the feature.
+Only allow reports to influence risk through documented logic that considers recency, location, verification, and possible duplicates.
 
-Citizen reports may contribute to the risk assessment only through documented logic that accounts for their status, recency, location, and limitations.
+## 8. Freshness, missing data, and simulation
 
-## 7. Data freshness and missing information
+The system distinguishes these logical states:
+- **Available:** a required input was retrieved and passed validation.
+- **Unavailable:** the input is absent or could not be retrieved.
+- **Stale:** the input exceeds its documented source-specific freshness/validity policy.
+- **Simulated:** the input was generated for testing or demonstration.
 
-Each environmental source must have a documented update policy appropriate to that source.
+Define exact field names and thresholds in the implementation and API contract. Thresholds must be chosen based on the selected source's update behaviour and the feature's intended use.
 
-The application should distinguish:
+Missing or stale rainfall must not be silently converted to zero. Missing current weather data must not automatically produce a low-risk result. Historical exposure can remain visible if correctly labelled, even when current risk is unknown.
 
-- **Available:** The required input is present.
-- **Unavailable:** The input could not be retrieved or is absent.
-- **Stale:** The input is older than the source-specific freshness threshold.
-- **Simulated:** The input was generated for testing or demonstration.
+## 9. Source register
 
-These are proposed logical states. The implementation must define exact field names and freshness thresholds in the API contract or relevant technical documentation.
+For every source, record:
 
-A source-specific freshness threshold must not be invented without considering the source's normal update frequency and intended use.
+| Field | Description |
+|---|---|
+| Dataset/API name | Exact human-readable source name |
+| Provider | Publishing organisation |
+| Official URL | Dataset/API documentation |
+| Geographic coverage | Area represented |
+| Temporal coverage | Dates/period represented |
+| Update frequency | How often data changes |
+| Access requirements | Public, key, registration, limits |
+| Licence/terms | Confirmed usage and attribution |
+| Verification status | Pending, accepted, or rejected |
+| Last checked | Date checked by the team |
+| Limitations | Known quality and interpretation issues |
 
-Missing or stale rainfall data must not be silently treated as zero rainfall. Missing data must not automatically produce a low-risk result.
+Do not build a critical workflow around a source until access, terms, and suitability have been tested.
 
-Historical exposure may remain visible even when current environmental signals are unavailable, provided it is labelled correctly.
+## 10. Data preparation and storage
 
-## 8. Data preparation and validation
+Before data enters the risk engine:
+1. Preserve the original source where permitted.
+2. Record provenance and retrieval/preparation time.
+3. Validate required fields and data types.
+4. Check missing values, duplicates, units, and plausible ranges.
+5. Check geographic compatibility and ward-code joins.
+6. Document transformations and test important ones.
+7. Keep simulated fixtures separate from verified reference data.
 
-Before any dataset enters the risk engine:
-
-1. Preserve the original source file where permitted.
-2. Record provenance and retrieval or preparation date.
-3. Validate required columns and data types.
-4. Check for missing and duplicate records.
-5. Validate units and plausible value ranges.
-6. Check ward-code consistency with geographic boundaries.
-7. Record any transformations.
-8. Create reproducible tests for important transformations.
-9. Keep sample or simulated data separate from verified source data.
-
-Do not silently replace missing values, modify source measurements, or remove records without documenting the reason.
-
-## 9. Data storage and repository policy
-
-### Git repository
-
-Suitable small, redistributable reference datasets and their documentation may be stored in `data/reference/`.
-
-Synthetic test fixtures belong in `data/sample/`.
-
-Large, restricted, sensitive, or frequently refreshed files should not automatically be committed to Git. Their storage method must be decided based on size, licensing, sensitivity, and reproducibility requirements.
-
-### Amazon S3
-
-S3 may be used for supported reference datasets, ingestion artifacts, or historical snapshots when those files need object storage.
-
-If the same dataset exists in Git and S3, document which copy is authoritative and how versions are identified.
-
-### Application records
-
-Citizen incident reports and their workflow metadata may be stored in the selected application database. They should not be mixed into the historical reference CSV.
-
-### Secrets
+Small, redistributable reference data may live under `data/reference/`; synthetic fixtures belong under `data/sample/`. Do not commit restricted, sensitive, large, or frequently refreshed files by default. S3 is an optional future location for snapshots or ingestion artifacts; if used, document which copy is authoritative.
 
 Never commit API keys, AWS credentials, access tokens, or populated `.env` files.
 
-## 10. Relationship to the risk engine
+## 11. Relationship to the risk engine
 
-The risk engine may combine suitable historical exposure information with current environmental inputs and incident reports.
+The initial method is an explainable heuristic, not a validated predictive model. The engine must keep historical exposure, forecast/model inputs, direct observations (if later available), and citizen reports distinct. Every input needs documented units, provenance, and time semantics.
 
-However:
+The engine must explain its output and handle missing or stale inputs explicitly. Simulated inputs must result in visibly labelled simulated outputs. Historical exposure must not be treated as a labelled flood-probability value.
 
-- Historical exposure is contextual information, not a direct flood-probability label.
-- Forecasts and observations must remain distinct.
-- Citizen reports must retain their verification and recency information.
-- Each input must have documented units and provenance.
-- The risk calculation must explain how inputs contribute to its output.
-- Missing critical information must be handled explicitly.
-- Simulated inputs must produce visibly labelled simulated results.
+## 12. Outstanding tasks
 
-The initial risk method is intended to be an explainable heuristic. It must not be described as a validated predictive model unless appropriate training or calibration data, evaluation, and supporting evidence exist.
-
-## 11. Source register
-
-Maintain a record for each source using this structure:
-
-| Field               | Description                                          |
-| ------------------- | ---------------------------------------------------- |
-| Dataset name        | Human-readable name                                  |
-| Provider            | Publishing organisation                              |
-| Official URL        | Dataset or API page                                  |
-| Geographic coverage | Area covered                                         |
-| Temporal coverage   | Dates represented                                    |
-| Update frequency    | How often data changes                               |
-| Access requirements | Public, registration, API key, or other restrictions |
-| Licence             | Confirmed usage terms                                |
-| Verification status | Pending, accepted, or rejected                       |
-| Last checked        | Date the team checked the source                     |
-| Limitations         | Known issues and caveats                             |
-
-A candidate source must remain marked as pending until its availability, licence, and suitability have been checked.
-
-## 12. Acceptance criteria
-
-A data source is ready for integration when:
-
-- Its provenance is documented.
-- The team can access the required data.
-- Its licensing and usage conditions are understood.
-- Its geographic and temporal coverage suit the feature.
-- Its fields, units, and timestamps are understood.
-- Its missing-data behaviour is documented.
-- A reproducible test or sample has been prepared.
-- The team has recorded its acceptance decision.
-
-Until these criteria are met, the application must not depend on the source as though it were guaranteed to be available.
-
-## 13. Outstanding tasks
-
-- [ ] Verify the transcribed ward exposure values against the original report.
-- [ ] Confirm the source CSV's exact provenance fields and metadata.
+- [ ] Verify the ward exposure CSV against the original report.
+- [ ] Test one real Open-Meteo request from the Python backend.
+- [ ] Confirm endpoint fields, units, timezone, location metadata, and provider terms.
+- [ ] Add attribution to the application.
+- [ ] Define freshness/validity rules for selected weather fields.
 - [ ] Find and verify a suitable Mumbai ward-boundary dataset.
-- [ ] Investigate accessible rainfall observations and forecast sources.
-- [ ] Investigate suitable historical flood or waterlogging records.
-- [ ] Document the licence and access requirements for every accepted source.
-- [ ] Define source-specific freshness thresholds.
-- [ ] Prepare clean sample fixtures for independent risk-engine testing.
-- [ ] Confirm which data can be safely included in the public repository.
+- [ ] Investigate official direct rainfall observations, if accessible.
+- [ ] Investigate suitable historical flood/waterlogging records.
+- [ ] Prepare deterministic sample fixtures for risk-engine tests.
+- [ ] Confirm which files and datasets may be distributed in the public repository.
 
 **Final principle:** FloodGuard must communicate what its data actually supports, not what the team wishes the data could prove.
