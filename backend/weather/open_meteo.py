@@ -1,11 +1,11 @@
-"""Small Open-Meteo adapter for hourly precipitation forecasts.
+"""Validated Open-Meteo hourly precipitation adapter.
 
-This module fetches and normalizes provider data. It does not calculate flood
-risk and does not claim that model output is a direct rain-gauge observation.
+This module fetches and normalizes weather-model forecasts. It does not
+calculate flood risk and does not represent model output as rain-gauge data.
 """
-
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 from typing import Any
 
@@ -20,6 +20,37 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _valid_coordinate(value: object, minimum: float, maximum: float) -> bool:
+    """Return whether a coordinate is a finite, in-range real number."""
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and minimum <= value <= maximum
+    )
+
+
+def _normalize_valid_time(value: object) -> str | None:
+    """Validate an hourly ISO timestamp and normalize it to UTC with Z.
+
+    Open-Meteo is requested with timezone=UTC, so timestamps without an
+    explicit offset are interpreted as UTC. Timestamps with offsets are
+    converted to UTC. A malformed timestamp is not allowed into the pipeline.
+    """
+    if not isinstance(value, str) or "T" not in value:
+        return None
+
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+
+    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def fetch_hourly_precipitation(
     latitude: float,
     longitude: float,
@@ -27,15 +58,21 @@ def fetch_hourly_precipitation(
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     client: httpx.Client | None = None,
 ) -> dict[str, Any]:
-    """Fetch hourly precipitation forecast data for one coordinate.
+    """Fetch and normalize hourly precipitation for one coordinate.
 
-    Returns a normalized dictionary with status='available' on success.
-    Provider/network/validation problems return status='unavailable' with an
-    error code; callers should not interpret failure as zero rainfall.
+    Returns status='available' only after the response shape, units, timestamps,
+    and precipitation values pass validation. Provider or validation failures
+    return status='unavailable'; they are never replaced with zero rainfall.
 
-    The optional client argument is intended for deterministic tests.
+    The optional client argument supports deterministic tests using MockTransport.
     """
     retrieved_at = _utc_now()
+
+    if not _valid_coordinate(latitude, -90.0, 90.0) or not _valid_coordinate(
+        longitude, -180.0, 180.0
+    ):
+        return _unavailable(retrieved_at, "WEATHER_INVALID_LOCATION")
+
     params = {
         "latitude": latitude,
         "longitude": longitude,
@@ -45,7 +82,7 @@ def fetch_hourly_precipitation(
     }
 
     owns_client = client is None
-    http_client = client or httpx.Client(timeout=timeout)
+    http_client = client if client is not None else httpx.Client(timeout=timeout)
 
     try:
         response = http_client.get(FORECAST_URL, params=params, timeout=timeout)
@@ -57,7 +94,7 @@ def fetch_hourly_precipitation(
         return _unavailable(retrieved_at, "WEATHER_HTTP_ERROR")
     except httpx.RequestError:
         return _unavailable(retrieved_at, "WEATHER_REQUEST_ERROR")
-    except ValueError:
+    except (ValueError, UnicodeError):
         return _unavailable(retrieved_at, "WEATHER_INVALID_JSON")
     finally:
         if owns_client:
@@ -72,7 +109,8 @@ def fetch_hourly_precipitation(
 
     times = hourly.get("time")
     precipitation = hourly.get("precipitation")
-    units = payload.get("hourly_units", {}).get("precipitation")
+    hourly_units = payload.get("hourly_units")
+    units = hourly_units.get("precipitation") if isinstance(hourly_units, dict) else None
 
     if (
         not isinstance(times, list)
@@ -88,16 +126,21 @@ def fetch_hourly_precipitation(
 
     normalized_hours: list[dict[str, Any]] = []
     for valid_time, amount in zip(times, precipitation):
-        if not isinstance(valid_time, str):
+        normalized_time = _normalize_valid_time(valid_time)
+        if normalized_time is None:
             return _unavailable(retrieved_at, "WEATHER_INVALID_TIMESTAMP")
+
         if amount is not None and (
-            isinstance(amount, bool) or not isinstance(amount, (int, float)) or amount < 0
+            isinstance(amount, bool)
+            or not isinstance(amount, (int, float))
+            or not math.isfinite(amount)
+            or amount < 0
         ):
             return _unavailable(retrieved_at, "WEATHER_INVALID_PRECIPITATION_VALUE")
 
         normalized_hours.append(
             {
-                "valid_at": valid_time,
+                "valid_at": normalized_time,
                 "precipitation_mm": float(amount) if amount is not None else None,
             }
         )
