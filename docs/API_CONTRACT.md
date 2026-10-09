@@ -1,28 +1,26 @@
 # FloodGuard API Contract
 
-**Status:** Draft for Checkpoint 0  
+**Status:** Checkpoint 0 contract — agreed implementation target  
 **Project:** FloodGuard — Mumbai hyperlocal flood intelligence
 
-## 1. Purpose
+This document defines the shared API and risk-engine interfaces. Frontend, backend, and data workstreams should use these field names and status values. Any change must be communicated and reflected in fixtures and tests.
 
-This document defines how the FloodGuard frontend, backend, risk engine, and data layer exchange information.
+## 1. Conventions
 
-All workstreams must follow these request and response formats. Changes must be communicated and reflected in the sample fixtures and tests.
-
-## 2. Conventions
-
-- API responses use JSON.
-- Coordinates use decimal latitude and longitude.
-- Timestamps use ISO 8601 format in UTC, ending in `Z`.
-- Risk scores range from 0 to 100 when a score can be calculated.
+- API payloads use JSON.
+- Coordinates are decimal latitude and longitude.
+- Timestamps are ISO 8601 UTC strings ending in `Z`.
+- Ward identifiers use the source dataset's `ward_code` values (for example, `F/N`), not invented IDs.
+- Risk scores range from 0 to 100 when a meaningful score can be calculated.
 - Risk levels are `low`, `moderate`, `high`, or `unknown`.
-- Missing or stale environmental data must be identified explicitly.
-- Historical vulnerability, observed incidents, forecast data, and simulated inputs must remain distinguishable.
-- The API must never present simulated data as live observations.
+- Data status values are `available`, `unavailable`, `stale`, or `simulated`.
+- Report workflow statuses are `new`, `reviewed`, and `resolved`.
+- Report verification statuses are `unverified` and `verified`. Verification must reflect an actual review process; it must not be inferred from workflow status.
+- Historical, observed, forecast, and simulated data must remain distinguishable.
 
-## 3. Common error response
+## 2. Common error response
 
-All API errors should use this structure:
+All API errors should follow this shape:
 
 ```json
 {
@@ -34,9 +32,9 @@ All API errors should use this structure:
 }
 ```
 
-The `request_id` may be omitted if unavailable. Error messages must not expose credentials, stack traces, or internal infrastructure details.
+`request_id` may be omitted if unavailable. Never expose credentials, stack traces, or internal infrastructure details.
 
-## 4. Endpoints
+## 3. Endpoints
 
 ### GET /health
 
@@ -53,33 +51,33 @@ Example response:
 
 ### GET /wards
 
-Returns ward-level historical vulnerability information and its provenance.
+Returns the historical ward-exposure baseline and provenance from the reference CSV.
 
-Example response:
+Example response (illustrative values; field names match the CSV):
 
 ```json
 {
   "data": [
     {
-      "ward_id": "WARD_01",
-      "ward_name": "Example Ward",
-      "historical_exposure": null,
-      "source_year": 2011,
-      "data_type": "historical_baseline"
+      "ward_code": "F/N",
+      "population_potentially_exposed_within_250m_buffer": 355766,
+      "percentage_of_ward_population_potentially_exposed_percent": 66.8,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
     }
   ],
   "meta": {
-    "source": "Mumbai Climate Action Plan vulnerability assessment",
-    "updated_at": null
+    "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+    "source_page": 112
   }
 }
 ```
 
-**Important:** This is a structural example, not a real ward record. Replace example identifiers and values with verified dataset fields. Do not invent missing ward names, measurements, or update timestamps.
+The response must preserve the source's ward codes and available field names. Do not invent ward names or update timestamps that are not present in the source. Verify transcribed figures against the original report before presenting them as confirmed.
 
 ### GET /risk
 
-Returns calculated risk results and the factors contributing to each result.
+Returns one risk assessment per evaluated ward or location. Optional filters may be added later only if needed.
 
 Example response:
 
@@ -87,12 +85,13 @@ Example response:
 {
   "data": [
     {
-      "ward_id": "WARD_01",
-      "risk_score": 78,
+      "ward_code": "F/N",
+      "risk_score": 72,
       "risk_level": "high",
       "reasons": [
         "Elevated rainfall signal",
-        "High historical vulnerability"
+        "High historical exposure baseline",
+        "Recent incident reports are present"
       ],
       "data_status": {
         "rainfall": "available",
@@ -100,7 +99,8 @@ Example response:
         "reports": "available"
       },
       "calculated_at": "2026-10-09T10:00:00Z",
-      "is_simulated": true
+      "is_simulated": true,
+      "method": "heuristic"
     }
   ],
   "meta": {
@@ -110,19 +110,15 @@ Example response:
 }
 ```
 
-The score and reasons above are illustrative only. They must not be treated as a real prediction or actual Mumbai measurement.
-
-If a reliable score cannot be calculated, return `risk_score: null` and `risk_level: "unknown"` rather than manufacturing a result.
+The score and reasons above are examples only, not real measurements or a validated prediction. If a meaningful current assessment cannot be calculated, return `risk_score: null` and `risk_level: "unknown"`. Historical exposure alone must not generate a current flood-risk score.
 
 ### GET /reports
 
-Returns recent incident reports.
+Returns recent incident reports. Supported optional query parameters:
 
-Optional query parameters may include:
-
-- `status`: filter by report status.
-- `ward_id`: filter by ward.
-- `limit`: maximum number of results, within a configured server-side limit.
+- `status`: workflow status filter.
+- `ward_code`: ward filter, when the report can be reliably associated with a ward.
+- `limit`: result limit, capped by a server-side maximum.
 
 Example response:
 
@@ -131,8 +127,8 @@ Example response:
   "data": [
     {
       "report_id": "example-report-id",
-      "ward_id": "WARD_01",
-      "latitude": 19.0760,
+      "ward_code": "F/N",
+      "latitude": 19.076,
       "longitude": 72.8777,
       "category": "waterlogging",
       "description": "Water accumulating near Gate 2",
@@ -145,17 +141,17 @@ Example response:
 }
 ```
 
-The coordinates and description are illustrative. A real report must use its actual submitted location and content.
+Coordinates and report text are illustrative. A report without a reliably matched ward may use `ward_code: null`; do not guess the ward.
 
 ### POST /reports
 
-Creates a new incident report.
+Creates an incident report. The client supplies the location and report details; the server assigns the ID, timestamp, workflow status, and initial verification status.
 
 Example request:
 
 ```json
 {
-  "latitude": 19.0760,
+  "latitude": 19.076,
   "longitude": 72.8777,
   "category": "waterlogging",
   "description": "Water accumulating near Gate 2",
@@ -163,9 +159,9 @@ Example request:
 }
 ```
 
-The backend must validate coordinates, category, description length, and required fields. The server assigns the report ID and timestamp.
+For a real user submission, the client must not be allowed to mark a report as verified. In the public demo, synthetic reports must be visibly labelled and their simulated status must be controlled safely by the application/backend, not trusted blindly from arbitrary client input.
 
-Example successful response:
+Example successful response (`201 Created`):
 
 ```json
 {
@@ -179,11 +175,11 @@ Example successful response:
 }
 ```
 
-A successfully stored report is not automatically a verified flood observation.
+Validate coordinates, category, and description length. A successfully stored report is not automatically a verified flood observation.
 
 ### PATCH /reports/{id}
 
-Updates an incident's status in the responder workflow.
+Updates a report's workflow status.
 
 Example request:
 
@@ -193,15 +189,9 @@ Example request:
 }
 ```
 
-Allowed report statuses:
+Allowed values: `new`, `reviewed`, `resolved`.
 
-- `new`
-- `reviewed`
-- `resolved`
-
-The backend validates the requested status and report ID.
-
-Example successful response:
+Example response:
 
 ```json
 {
@@ -212,58 +202,114 @@ Example successful response:
 }
 ```
 
-Verification status is separate from workflow status. A report being reviewed does not automatically mean it has been verified.
+Workflow status and verification status are separate. Moving a report to `reviewed` does not automatically make it verified. Until authentication/authorization is implemented, this endpoint is a prototype workflow and must not be represented as secure public responder access.
 
-## 5. Risk-engine interface
+## 4. Risk-engine interface
 
-The risk engine must be testable independently of the API and frontend.
+The risk engine is a pure, independently testable calculation module. It should not make HTTP requests or write to the database itself. The backend gathers inputs, calls the engine, and handles persistence/API responses.
 
-Its input should contain the available environmental signals, historical vulnerability, relevant incident information, timestamps, and source/freshness metadata.
+### Input object
 
-Its output should contain:
+The backend supplies an object with the following conceptual shape. Optional inputs may be `null) when unavailable; absence must never be silently replaced with zero.
 
-- Ward or location identifier.
-- Risk score, if calculable.
-- Risk category.
-- Reasons contributing to the result.
-- Input availability and freshness information.
-- Calculation timestamp.
-- Whether the result uses simulated inputs.
-- Method identifier, such as `heuristic`.
+```json
+{
+  "ward": {
+    "ward_code": "F/N",
+    "population_potentially_exposed_within_250m_buffer": 355766,
+    "percentage_of_ward_population_potentially_exposed_percent": 66.8,
+    "underlying_population_data_year": 2011,
+    "data_type": "historical vulnerability baseline"
+  },
+  "rainfall": {
+    "kind": "observation",
+    "value": 42.5,
+    "unit": "mm",
+    "period_minutes": 60,
+    "observed_at": "2026-10-09T09:30:00Z",
+    "source": "configured-provider",
+    "status": "available"
+  },
+  "reports": [
+    {
+      "report_id": "example-report-id",
+      "reported_at": "2026-10-09T09:45:00Z",
+      "status": "new",
+      "verification_status": "unverified",
+      "is_simulated": false
+    }
+  ],
+  "evaluated_at": "2026-10-09T10:00:00Z"
+}
+```
 
-The precise input fields, normalization, weights, thresholds, and missing-data rules must be agreed and documented before implementation.
+The values are illustrative. The actual rainfall provider, units, time window, and freshness thresholds must be documented once the provider is selected. Rainfall `kind` must distinguish `observation` from `forecast`; the provider's source and timestamp must be retained. A missing rainfall object or non-available status must be represented explicitly.
 
-The risk engine must not assume that the historical ward vulnerability dataset is a flood-probability label.
+### Output object
 
-## 6. HTTP status codes
+```json
+{
+  "ward_code": "F/N",
+  "risk_score": 72,
+  "risk_level": "high",
+  "reasons": [
+    "Elevated rainfall signal",
+    "High historical exposure baseline"
+  ],
+  "data_status": {
+    "rainfall": "available",
+    "historical_baseline": "available",
+    "reports": "available"
+  },
+  "calculated_at": "2026-10-09T10:00:00Z",
+  "is_simulated": false,
+  "method": "heuristic"
+}
+```
 
-Use appropriate HTTP responses:
+If the available inputs cannot support a meaningful current assessment, `risk_score` must be `null`, `risk_level` must be `unknown`, and `reasons` must explain why. The output must indicate whether any contributing input is simulated. If simulated and real inputs are mixed, the result must still be labelled as simulation/mixed rather than wholly live.
+
+### Risk-engine rules
+
+1. Historical exposure is a background vulnerability factor, not a flood-probability label.
+2. A current risk assessment must not be generated from historical exposure alone.
+3. Rainfall observations and forecasts must not be treated as interchangeable.
+4. Reports contribute according to recency and verification status; unverified reports must not be described as confirmed incidents.
+5. Do not double-count overlapping signals.
+6. Missing or stale inputs must be surfaced in `data_status`; they must not silently become zero or low risk.
+7. Every score must have human-readable reasons and a method identifier.
+8. The initial method is a heuristic, not a trained or validated flood-prediction model.
+
+### Scoring configuration still to be set during implementation
+
+The interface is fixed, but numeric weights and thresholds are deliberately not fixed here. They depend on the actual rainfall source, its units/time window, and available incident data. Before enabling the score, the team must document:
+- signal normalization and weights;
+- risk-level thresholds;
+- source-specific freshness thresholds;
+- treatment of unverified reports and simulated inputs;
+- missing-input behaviour;
+- tests for edge cases.
+
+Do not choose weights merely to make the demo produce dramatic high-risk results.
+
+## 5. HTTP status codes
 
 - `200 OK`: successful retrieval or update.
-- `201 Created`: report successfully created.
+- `201 Created`: report created.
 - `400 Bad Request`: malformed or invalid request.
-- `404 Not Found`: report or resource does not exist.
+- `404 Not Found`: report/resource does not exist.
 - `429 Too Many Requests`: request limit exceeded, where configured.
 - `500 Internal Server Error`: unexpected server failure.
 
-## 7. Integration requirements
+## 6. Integration requirements
 
-- The frontend must be able to use mock responses matching these schemas.
-- The risk engine must accept local test fixtures.
-- The backend must be testable using sample requests before the frontend is connected.
-- Identifiers, timestamps, status values, and risk categories must remain consistent across workstreams.
-- If a contract changes, update this document, the fixtures, and relevant tests.
-- The final application must use the deployed API for the demonstrated end-to-end workflow.
+- Frontend development can use mock JSON matching these response schemas before the backend is deployed.
+- The risk engine must be callable and testable independently using local fixtures.
+- Keep ward identifiers, timestamps, enum values, and field names consistent across workstreams.
+- Add tests for missing/stale rainfall, no reports, unverified reports, simulated inputs, invalid coordinates, and unknown ward codes.
+- If the contract changes, update this document, fixtures, and tests in the same change.
+- The final demo must use the integrated application for the workflow it claims to demonstrate.
 
-## 8. Decisions still required
+## 7. Contract status
 
-Before the contract is frozen, the team must confirm:
-
-1. The actual ward identifiers and fields present in the reference CSV.
-2. The final risk-engine input and output schema.
-3. The supported incident categories.
-4. The exact stale-data and missing-data status values.
-5. The backend runtime and local testing approach.
-6. The persistence implementation and API deployment configuration.
-
-Until these decisions are approved at Checkpoint 0, this document is the proposed contract rather than a claim that the API has already been implemented.
+The API routes, shared field names, and risk-engine input/output shape are the implementation target for Checkpoint 0. The actual rainfall provider, scoring weights, thresholds, persistence choice, and deployment configuration remain implementation decisions and must be recorded once confirmed. This document describes the agreed interface, not features already implemented.
