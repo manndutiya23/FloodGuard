@@ -1,0 +1,25 @@
+ward_code,csv_population,source_population,population_match,csv_percentage_percent,source_percentage_percent,percentage_match,overall_status,source_table,source_printed_page,verification_date,verification_method
+A,33152,33152,MATCH,17.9,17.9,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+B,53911,53911,MATCH,43.4,43.4,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+C,36010,36010,MATCH,21.7,21.7,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+D,105583,105583,MATCH,30.4,30.4,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+E,147930,147930,MATCH,37.5,37.5,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+F/N,355766,355766,MATCH,66.8,66.8,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+F/S,144576,144576,MATCH,40.3,40.3,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+G/N,304429,304429,MATCH,50.3,50.3,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+G/S,153522,153522,MATCH,41.7,41.7,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+H/E,329774,329774,MATCH,61.6,61.6,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+H/W,200342,200342,MATCH,61.2,61.2,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+K/E,187389,187389,MATCH,22.5,22.5,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+K/W,266733,266733,MATCH,35.9,35.9,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+L,312960,312960,MATCH,34.5,34.5,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+M/E,275491,275491,MATCH,34.1,34.1,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+M/W,182542,182542,MATCH,45.1,45.1,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+N,108962,108962,MATCH,17.4,17.4,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+P/N,143697,143697,MATCH,15.4,15.4,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+P/S,143846,143846,MATCH,31.0,31.0,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+R/C,145800,145800,MATCH,25.6,25.6,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+R/N,175520,175520,MATCH,41.1,41.1,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+R/S,209665,209665,MATCH,30.0,30.0,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+S,190113,190113,MATCH,26.4,26.4,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
+T,178542,178542,MATCH,49.5,49.5,MATCH,MATCH,XXVI - Persons potentially at risk due to floods,112,2026-10-09,Manual visual comparison against original PDF table; extracted text used as a secondary check
