@@ -43,7 +43,7 @@ def test_normalizes_hourly_precipitation_and_timestamps():
     assert result["source_type"] == "weather_model_forecast"
     assert result["precipitation_unit"] == "mm"
     assert result["hours"][0]["precipitation_mm"] == 0.2
-    assert result["hours"][0]["valid_at"] == "2026-10-09T12:00:00Z"
+    assert result["hours"][0]["forecast_valid_at"] == "2026-10-09T12:00:00Z"
     assert result["hours"][1]["precipitation_mm"] is None
     assert result["provider_location"]["latitude"] == 19.1
     assert result["is_simulated"] is False
