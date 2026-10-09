@@ -140,7 +140,7 @@ def fetch_hourly_precipitation(
 
         normalized_hours.append(
             {
-                "valid_at": normalized_time,
+                "forecast_valid_at": normalized_time,
                 "precipitation_mm": float(amount) if amount is not None else None,
             }
         )
