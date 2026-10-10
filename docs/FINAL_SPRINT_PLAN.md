@@ -1,12 +1,17 @@
-# Final sprint plan — 11 October 2026
+# Final sprint plan — Sunday, 11 October 2026
 
-**Purpose:** Freeze the last two implementation tasks before demo preparation. Each contributor has a hard three-hour cap. This plan updates the current prototype priorities; it does not claim the tasks are already implemented.
+**Time zone:** India Standard Time (IST, UTC+05:30).  
+**Hard deadline:** Sunday, 11 October 2026, 5:00 PM IST — code freeze.  
+**Contingency window:** 5:00 PM–Sunday 11:59 PM IST for integration failures, regression fixes, rehearsal, and demo preparation only.  
+**Purpose:** Finish the two implementation tasks without jeopardizing the working prototype. Each implementation owner has a hard three-hour cap. The schedule below is the agreed deadline plan, not a claim that tasks are already implemented. If the team is starting later than planned, keep the same 5:00 PM freeze and reduce scope rather than move the deadline.
 
 ## Agreed ownership
 
 ### Laksh — small, explainable ML risk-model experiment (maximum 3 hours)
 
 **Goal:** Determine whether a small ML model adds defensible value to the existing rule-based risk engine without destabilizing the current demo.
+
+Owner: **Laksh**. Deliverable due **Sunday, 11 October, 2:00 PM IST** (within a maximum three-hour work block).  
 
 Timebox:
 1. **20 minutes — inspect first:** Review the existing risk engine, tests, input schema, data provenance, and available labels. Identify what already exists; do not duplicate it.
@@ -27,6 +32,8 @@ Timebox:
 
 **Goal:** Publish the current frontend at a live HTTPS URL and connect it to the deployed API.
 
+Owner: **Manasvi**. Deliverable due **Sunday, 11 October, 2:00 PM IST** (within a maximum three-hour work block).  
+
 Timebox:
 1. **30 minutes — inspect:** Check the production build, current AWS hosting resources, environment variables, API base URL, and mock-mode defaults.
 2. **90 minutes — deploy:** Use AWS Amplify Hosting if appropriate, or reuse an existing supported host rather than creating unnecessary infrastructure.
@@ -42,6 +49,21 @@ Timebox:
 
 **Stop condition:** Do not add custom domains, elaborate CI/CD, or new infrastructure if they threaten the three-hour limit. Never place AWS credentials or privileged secrets in frontend variables.
 
+## Exact deadlines and handoffs (IST)
+
+| Deadline | Owner | Required outcome |
+|---|---|---|
+| Sunday 11:00 AM | Laksh | Confirm whether suitable labelled flood-outcome data exists; post a brief go/no-go update before spending time on modelling. |
+| Sunday 2:00 PM | Laksh | ML experiment or model-readiness note, tests where applicable, and PR ready for review. |
+| Sunday 2:00 PM | Manasvi | Frontend deployed to HTTPS, production API/mocks configured, smoke-test results and deployment notes, PR ready for review. |
+| Sunday 2:00–3:30 PM | Mann + owners | Review PRs, resolve integration/configuration issues, verify deployment and API/report flow. |
+| Sunday 3:30 PM | Menaka | Demo script/video narrative updated to match verified functionality; no unverified claims. |
+| **Sunday 5:00 PM** | **Mann (release owner); all contributors** | **Hard code freeze.** Only release-blocking fixes after this point; no new features. |
+| Sunday 5:00–8:00 PM | Mann + team | Contingency for deployment failures, regressions, rollback, and clean-browser demo rehearsal. |
+| Sunday 8:00–11:59 PM | Menaka + team | Final demo/video polish, run-through, backup screenshots/recording, and submission checks. No scope expansion. |
+
+If a task misses its deadline, ship the last known working path and document the limitation; do not push an untested change merely to meet the schedule.
+
 ## Integration and release ownership
 
 - **Laksh:** owns the ML experiment, tests, documentation, and pull request.
@@ -49,7 +71,7 @@ Timebox:
 - **Mann:** owns integration/release approval, production end-to-end verification, and demo freeze.
 - **Menaka:** updates the demo/video narrative only after the team confirms which new capabilities actually work.
 
-Use separate branches and small pull requests. Do not push unfinished work directly to `main`. Keep the existing heuristic and the last known working deployment available until replacements are verified. After both tasks, reserve remaining time for a clean-browser rehearsal and release-blocking fixes only.
+Use separate branches and small pull requests. Do not push unfinished work directly to `main`. Keep the existing heuristic and the last known working deployment available until replacements are verified. After both tasks, reserve 2:00–5:00 PM for integration and release verification. Freeze code at 5:00 PM IST on Sunday, 11 October 2026; use the remaining time until midnight only for contingency, rehearsal, and demo/submission preparation.
 
 ## Proposed AWS access boundaries
 
