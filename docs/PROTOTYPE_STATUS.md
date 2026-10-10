@@ -42,14 +42,16 @@ Until that work is complete:
 - Keep the S3 bucket private.
 - Implement and verify backend authorization before enabling responder-only presigned downloads.
 
-## Next milestone
+## Next milestone — final sprint
 
-1. Add responder authentication, using an established identity provider such as Amazon Cognito.
-2. Enforce authentication and responder authorization in the backend for status changes and photo URL issuance.
-3. Add `GET /reports/{report_id}/photo-url` to validate report/photo association and return a short-lived presigned GET URL only to authorized responders.
-4. Add evidence viewing to the responder UI with clear loading, missing-photo, and expired-link behavior.
-5. Verify the full flow: citizen submission → persisted report → responder sign-in → evidence view → status update.
-6. Re-run regression checks for the public citizen report flow.
+The immediate final sprint is tracked in [Final sprint plan](FINAL_SPRINT_PLAN.md). It assigns:
+
+1. **Laksh (3-hour cap):** inspect the existing risk engine and data first; run a small explainable ML experiment only if suitable labelled observations exist. Evaluate against a baseline, preserve the heuristic fallback, and do not claim predictive accuracy from synthetic data. If labels are not available, document model readiness instead of inventing labels.
+2. **Manasvi (3-hour cap):** deploy the frontend to a live HTTPS URL, connect it to the deployed API, disable mock mode in production, verify report submission, and document the deployment.
+3. **Mann:** own infrastructure approval, integration, production smoke tests, and demo freeze.
+4. **Menaka:** update demo/video claims only after the new functionality is verified.
+
+AWS access boundaries in the sprint plan are recommendations only. No IAM roles or policies were changed by this documentation update. Responder authentication remains a known security gap and should not be implied to exist.
 
 ## Demo guidance
 
