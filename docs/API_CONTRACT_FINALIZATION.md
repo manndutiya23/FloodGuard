@@ -66,7 +66,7 @@ A public citizen request cannot set `verification_status: "verified"`. Simulatio
 
 ### `POST /reports/photo-upload`
 
-Requests authorization to upload one photo. The backend validates content type and issues a short-lived presigned S3 upload URL with a server-generated object key and the required upload headers/fields.
+Requests authorization to upload one photo. The current implementation accepts JSON `{ "content_type": "image/jpeg|image/png|image/webp", "file_name": "..." }` and returns `{ "data": { "upload_id", "upload_url", "fields", "expires_in", "max_bytes", "content_type" } }`. The URL is a presigned **S3 POST**; the browser must submit `FormData` containing every returned `fields` entry followed by the file under the `file` field. The backend validates content type and issues a short-lived upload authorization with a server-generated object key and required form fields.
 
 Initial constraints:
 - At most one photo per report.
@@ -75,7 +75,7 @@ Initial constraints:
 - Upload URL lifetime: approximately five minutes.
 - S3 bucket and objects remain private.
 
-The frontend uploads the binary directly to S3 rather than proxying it through API Gateway. The backend tracks the pending upload using an upload ID.
+The frontend uploads the binary directly to S3 rather than proxying it through API Gateway. The backend tracks the pending upload using an upload ID in the configured `REPORTS_TABLE_NAME` table. Configure `PHOTO_BUCKET_NAME` for the private S3 bucket and the bucket's CORS policy to allow the frontend origin and POST requests. The Lambda execution role must be allowed to create/read/inspect objects in this bucket. The current upload endpoint is implemented on `feature/report-photo-upload`; it is not deployed to AWS yet.
 
 After upload, the client includes `photo_upload_id` in `POST /reports`. The backend verifies the pending upload belongs to the intended flow, has not expired or already been consumed, and that the object exists and conforms to allowed metadata/size constraints before linking it to the report. An absent photo must not block a report. Invalid or incomplete uploads must not be represented as an available photo.
 
