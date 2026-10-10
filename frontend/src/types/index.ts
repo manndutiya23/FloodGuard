@@ -105,6 +105,7 @@ export interface Report {
   verification_status: VerificationStatus
   reported_at: string
   is_simulated: boolean
+  photo?: { available: boolean; content_type: string; size_bytes: number; object_key?: string } | null
 }
 
 export interface NewReport {
@@ -114,6 +115,7 @@ export interface NewReport {
   description?: string
   ward_code?: string | null
   is_simulated?: boolean
+  photo_upload_id?: string
 }
 
 export interface CreatedReport {
