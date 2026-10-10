@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { CircleMarker, MapContainer, TileLayer, useMapEvents } from 'react-leaflet'
 import { SimulatedBadge, VerificationBadge } from '../components/Badges'
@@ -6,11 +6,13 @@ import { ErrorState } from '../components/StatusStates'
 import { useAsync } from '../hooks/useAsync'
 import { categoryLabel, capitalize, formatDateTime } from '../lib/format'
 import { findWard, loadWardBoundaries } from '../lib/geo'
-import { createReport, USE_MOCKS } from '../services/api'
+import { createReport, uploadReportPhoto, USE_MOCKS } from '../services/api'
 import type { CreatedReport, ReportCategory } from '../types'
 
 // Provisional client-side limit; align with the backend's validation once it is implemented.
 const DESCRIPTION_MAX = 280
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 const CATEGORIES: { id: ReportCategory; hint: string }[] = [
   { id: 'waterlogging', hint: 'Standing water on a road or lane' },
@@ -30,6 +32,9 @@ export default function ReportPage() {
   const [wardChoice, setWardChoice] = useState<string>('auto')
   const [category, setCategory] = useState<ReportCategory>('waterlogging')
   const [description, setDescription] = useState('')
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [locating, setLocating] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -40,6 +45,29 @@ export default function ReportPage() {
   const wardCodes = boundaries.data ? boundaries.data.map((f) => f.properties.ward_code).sort() : []
   const effectiveWard = wardChoice === 'auto' ? matchedWard : wardChoice === 'unknown' ? null : wardChoice
   const tooLong = description.length > DESCRIPTION_MAX
+
+  useEffect(() => {
+    if (!photo) { setPhotoPreview(null); return }
+    const url = URL.createObjectURL(photo)
+    setPhotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo])
+
+  function choosePhoto(file: File | undefined) {
+    setPhotoError(null)
+    if (!file) { setPhoto(null); return }
+    if (!PHOTO_TYPES.has(file.type)) {
+      setPhoto(null)
+      setPhotoError('Choose a JPEG, PNG, or WebP image.')
+      return
+    }
+    if (file.size < 1 || file.size > PHOTO_MAX_BYTES) {
+      setPhoto(null)
+      setPhotoError('The photo must be smaller than 5 MB.')
+      return
+    }
+    setPhoto(file)
+  }
 
   function useMyLocation() {
     if (!('geolocation' in navigator)) {
@@ -67,7 +95,9 @@ export default function ReportPage() {
     setSubmitting(true)
     setSubmitError(null)
     try {
+      const photo_upload_id = photo && !USE_MOCKS ? await uploadReportPhoto(photo) : undefined
       const report = await createReport({
+        photo_upload_id,
         latitude: Number(point.lat.toFixed(6)),
         longitude: Number(point.lng.toFixed(6)),
         category,
@@ -86,6 +116,8 @@ export default function ReportPage() {
     setCreated(null)
     setPoint(null)
     setDescription('')
+    setPhoto(null)
+    setPhotoError(null)
     setWardChoice('auto')
     setCategory('waterlogging')
   }
@@ -246,6 +278,32 @@ export default function ReportPage() {
           </span>
         </label>
 
+        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+          <legend className="mb-1 p-0 font-semibold">Photo evidence (optional)</legend>
+          <p className="m-0 text-[13px] text-muted">Add one JPEG, PNG, or WebP image up to 5 MB. Never enter floodwater to take a photo.</p>
+          <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#9aa7b6] bg-white px-3 py-2 text-sm font-semibold text-accent hover:bg-[#eef4fb]">
+            {photo ? 'Choose a different photo' : 'Choose a photo'}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="Choose optional flood photo"
+              className="sr-only"
+              onChange={(e) => choosePhoto(e.currentTarget.files?.[0])}
+            />
+          </label>
+          {photo && photoPreview && (
+            <div className="flex items-start gap-3 rounded-lg border border-line bg-white p-3">
+              <img src={photoPreview} alt="Preview of selected report photo" className="h-20 w-20 rounded-md object-cover" />
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="m-0 break-all font-medium">{photo.name}</p>
+                <p className="mt-1 mb-0 text-muted">{(photo.size / 1024).toFixed(0)} KB</p>
+                <button type="button" onClick={() => { setPhoto(null); setPhotoError(null) }} className="mt-2 font-semibold text-high">Remove photo</button>
+              </div>
+            </div>
+          )}
+          {photoError && <p role="alert" className="m-0 text-sm text-high">{photoError}</p>}
+        </fieldset>
+
         <p className="m-0 text-[13px] text-muted">
           Your report is shown as unverified until a responder reviews it. Do not enter floodwater to take a report.
         </p>
@@ -257,7 +315,7 @@ export default function ReportPage() {
           disabled={!point || tooLong || submitting}
           className="min-h-[50px] rounded-lg bg-accent font-semibold text-white hover:bg-accent-dark disabled:cursor-not-allowed disabled:bg-[#9aa7b6]"
         >
-          {submitting ? 'Sending…' : point ? 'Submit report' : 'Choose a location to submit'}
+          {submitting ? (photo && !USE_MOCKS ? 'Uploading photo and sending…' : 'Sending…') : point ? 'Submit report' : 'Choose a location to submit'}
         </button>
       </form>
     </main>
