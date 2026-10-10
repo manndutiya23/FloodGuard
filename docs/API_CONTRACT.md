@@ -167,13 +167,18 @@ The example's values and wording are illustrative only. Any user-facing statemen
 
 ### GET /reports
 
-Returns recent incident reports. Supported optional query parameters:
+Returns recent incident reports using **cursor-based pagination**. Cursor pagination is the agreed API contract; the current implementation's bounded `limit` plus DynamoDB `Scan` is an interim implementation gap and must not be treated as the final contract.
+
+Supported optional query parameters:
 
 - `status`: workflow status filter.
 - `ward_code`: ward filter, when the report can be reliably associated with a ward.
-- `limit`: result limit, capped by a server-side maximum.
+- `limit`: page size, capped by a server-side maximum.
+- `cursor`: opaque continuation token returned by the previous page. Omit it to request the first page.
 
-Example response:
+The response should include `data` and pagination metadata containing a `next_cursor` (or `null` when no further page exists). The cursor is opaque to clients; clients must pass it back unchanged. Pagination must continue through the underlying DynamoDB results rather than silently treating one `Scan` response as the complete dataset. Filtering and ordering semantics must remain consistent across pages. Implementation details may use a suitable DynamoDB access pattern, but must preserve this contract.
+
+Example response (illustrative cursor-based page):
 
 ```json
 {
@@ -190,11 +195,14 @@ Example response:
       "reported_at": "2026-10-09T10:00:00Z",
       "is_simulated": true
     }
-  ]
+  ],
+  "meta": {
+    "next_cursor": "opaque-continuation-token"
+  }
 }
 ```
 
-Coordinates and report text are illustrative. A report without a reliably matched ward may use `ward_code: null`; do not guess the ward.
+The `meta.next_cursor` value is illustrative. It must be `null` when no further page exists. Coordinates and report text are illustrative. A report without a reliably matched ward may use `ward_code: null`; do not guess the ward.
 
 ### POST /reports
 
