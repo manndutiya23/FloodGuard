@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import math
+from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import os
@@ -252,8 +253,8 @@ def create_report(payload: ReportCreate) -> dict[str, Any]:
     report = {
         "report_id": str(uuid.uuid4()),
         "ward_code": None,
-        "latitude": payload.latitude,
-        "longitude": payload.longitude,
+        "latitude": Decimal(str(payload.latitude)),
+        "longitude": Decimal(str(payload.longitude)),
         "category": payload.category,
         "description": (payload.description or "").strip() or None,
         "status": "new",
