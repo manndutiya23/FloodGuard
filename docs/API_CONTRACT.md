@@ -173,8 +173,10 @@ Supported optional query parameters:
 
 - `status`: workflow status filter.
 - `ward_code`: ward filter, when the report can be reliably associated with a ward.
-- `limit`: page size, capped by a server-side maximum.
-- `cursor`: opaque continuation token returned by the previous page. Omit it to request the first page.
+- `limit`: page size; optional integer from **1 to 100 inclusive**, default **100**. Values above 100 are invalid and currently return FastAPI HTTP `422 Unprocessable Entity`. Frontend clients must request at most 100 reports per call; do not use `limit=200`.
+- `cursor`: opaque continuation token returned by the previous page. Omit it to request the first page. Cursor-based pagination remains the agreed target contract, but it is **not implemented by the current deployed endpoint**; the current endpoint uses a bounded `limit` and DynamoDB `Scan`.
+
+**Current deployed behavior (interim):** `GET /reports` accepts `status`, `ward_code`, and `limit` (default/max `100`, minimum `1`) and returns `{ "data": [...] }`. It does not yet implement `cursor` or `meta.next_cursor`. A request such as `GET /reports?limit=200` returns `422`; clients must use `limit=100` or omit the parameter. The Responder frontend should request no more than 100 until cursor pagination is implemented end to end.
 
 The response should include `data` and pagination metadata containing a `next_cursor` (or `null` when no further page exists). The cursor is opaque to clients; clients must pass it back unchanged. Pagination must continue through the underlying DynamoDB results rather than silently treating one `Scan` response as the complete dataset. Filtering and ordering semantics must remain consistent across pages. Implementation details may use a suitable DynamoDB access pattern, but must preserve this contract.
 
