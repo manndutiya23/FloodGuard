@@ -94,10 +94,12 @@ Never commit local environment files, AWS credentials, API keys, access tokens, 
 
 ## Team workstreams
 
-- **Mann:** architecture, backend/AWS integration, API contract, release coordination.
-- **Manasvi:** environmental data research, data processing, risk-engine logic.
-- **Laksh:** geospatial frontend, map experience, and user interface.
-- **Menaka:** documentation and demo video production.
+- **Mann:** architecture, backend/AWS integration, API contract, infrastructure access, and release coordination.
+- **Manasvi:** final sprint — deploy the frontend to a live HTTPS URL, connect it to the deployed API, verify production configuration, and document the deployment (3-hour cap).
+- **Laksh:** final sprint — assess and, only if suitable labelled data exists, prototype a small explainable ML risk model against a baseline; preserve the heuristic fallback and document limitations (3-hour cap).
+- **Menaka:** documentation and demo video production; update claims only after new functionality is verified.
+
+See [Final sprint plan and AWS access boundaries](docs/FINAL_SPRINT_PLAN.md) for acceptance criteria, timeboxes, handoffs, and proposed least-privilege IAM boundaries.
 
 ## License
 
