@@ -99,7 +99,7 @@ Never commit local environment files, AWS credentials, API keys, access tokens, 
 - **Laksh:** final sprint — assess and, only if suitable labelled data exists, prototype a small explainable ML risk model against a baseline; preserve the heuristic fallback and document limitations (3-hour cap).
 - **Menaka:** documentation and demo video production; update claims only after new functionality is verified.
 
-See [Final sprint plan and AWS access boundaries](docs/FINAL_SPRINT_PLAN.md) for acceptance criteria, timeboxes, handoffs, and proposed least-privilege IAM boundaries.
+The hard code-freeze deadline is **Sunday, 11 October 2026, 5:00 PM IST**. The remaining time until midnight is reserved for contingency, regression fixes, rehearsal, and demo/submission preparation—not new features. See [Final sprint plan and AWS access boundaries](docs/FINAL_SPRINT_PLAN.md) for owner deadlines, acceptance criteria, handoffs, and access notes.
 
 ## License
 
