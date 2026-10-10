@@ -426,3 +426,28 @@ The provisional numeric assumptions are recorded in `docs/RISK_SCORING_DECISIONS
 This document describes the implementation target, not proof that every behavior is already implemented. The numeric normalization constant for rainfall and the report decay/base weights/duplicate thresholds require explicit recording in `docs/RISK_SCORING_DECISIONS.md` before the complete configuration is considered final.
 
 The current weather source uses one representative Mumbai point, not ward-specific rainfall. The rainfall scaling rule is linear and capped at 70 points, where 30 mm over the selected three-hour forecast window reaches the cap; this is not a validated rainfall danger threshold. The heuristic has not been scientifically validated and must not be described as a flood-prediction model or official warning. Current data or storage limitations must be surfaced rather than hidden.
+
+
+## 8. Deployed prototype extensions and security status
+
+The current deployed prototype includes the following report/photo routes in addition to the contract's core endpoints:
+
+### POST /reports/photo-upload
+
+Issues a short-lived presigned S3 POST form for one JPEG, PNG, or WebP photo (maximum 5 MiB) and records a pending upload in DynamoDB. The response includes the upload ID, upload URL, required form fields, expiry, size limit, and accepted content type. The bucket remains private.
+
+### POST /reports with photo_upload_id
+
+The report creation request may include `photo_upload_id`. The backend validates that the pending upload exists, has not expired or been consumed, and that the S3 object matches the expected size, content type, upload metadata, and supported image signature before attaching photo metadata to the report. Internal pending-upload records must not appear in normal report listings.
+
+The photo upload and report creation flow has been exercised successfully against the deployed prototype. The successful browser S3 POST returns `204 No Content`, and report creation returned `201 Created`. This verifies the tested path, not all failure cases.
+
+### PATCH /reports/{id}
+
+The current responder workflow can update report workflow status. **Responder authentication and backend authorization are not implemented yet.** This route must be treated as prototype functionality, not secure responder-only access. Workflow status does not imply verification.
+
+### GET /reports/{report_id}/photo-url
+
+**Planned; not implemented.** Before this route is enabled, backend authentication and responder authorization must be enforced. The endpoint should verify that the report exists and has an associated photo, then return a short-lived presigned S3 GET URL. Missing reports/photos should not return a URL. Do not make S3 objects public or treat CORS as authentication.
+
+The deployed API is a working prototype. This contract records implemented extensions and known gaps so that documentation does not imply planned secure access already exists.
