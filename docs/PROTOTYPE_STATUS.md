@@ -44,14 +44,16 @@ Until that work is complete:
 
 ## Next milestone — final sprint
 
+**All times are IST (UTC+05:30). Hard code freeze: Sunday, 11 October 2026, 5:00 PM IST.** Implementation owners must hand off by 2:00 PM so the team has a dedicated integration window. From 5:00 PM onward, allow only release-blocking fixes, rollback, rehearsal, and demo preparation; do not add features.
+
 The immediate final sprint is tracked in [Final sprint plan](FINAL_SPRINT_PLAN.md). It assigns:
 
 1. **Laksh (3-hour cap):** inspect the existing risk engine and data first; run a small explainable ML experiment only if suitable labelled observations exist. Evaluate against a baseline, preserve the heuristic fallback, and do not claim predictive accuracy from synthetic data. If labels are not available, document model readiness instead of inventing labels.
 2. **Manasvi (3-hour cap):** deploy the frontend to a live HTTPS URL, connect it to the deployed API, disable mock mode in production, verify report submission, and document the deployment.
 3. **Mann:** own infrastructure approval, integration, production smoke tests, and demo freeze.
-4. **Menaka:** update demo/video claims only after the new functionality is verified.
+4. **Menaka:** update demo/video claims only after the new functionality is verified; target completion by Sunday 3:30 PM IST.
 
-AWS access boundaries in the sprint plan are recommendations only. No IAM roles or policies were changed by this documentation update. Responder authentication remains a known security gap and should not be implied to exist.
+Deadlines: Laksh and Manasvi hand off by Sunday 2:00 PM IST; Mann leads integration/release checks from 2:00–5:00 PM; code freeze is Sunday 5:00 PM IST; 5:00 PM–midnight is contingency and demo preparation only. See the sprint plan for the detailed timeline. AWS access boundaries in the sprint plan are recommendations only. No IAM roles or policies were changed by this documentation update. Responder authentication remains a known security gap and should not be implied to exist.
 
 ## Demo guidance
 
