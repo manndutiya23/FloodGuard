@@ -11,7 +11,7 @@
 
 **Goal:** Determine whether a small ML model adds defensible value to the existing rule-based risk engine without destabilizing the current demo.
 
-Owner: **Laksh**. Deliverable due **Sunday, 11 October, 2:00 PM IST** (within a maximum three-hour work block).  
+Owner: **Laksh**. Deliverable due **Sunday, 11 October, 5:00 PM IST** (within a maximum three-hour work block).  
 
 Timebox:
 1. **20 minutes — inspect first:** Review the existing risk engine, tests, input schema, data provenance, and available labels. Identify what already exists; do not duplicate it.
@@ -53,23 +53,23 @@ Timebox:
 
 | Deadline | Owner | Required outcome |
 |---|---|---|
-| Sunday 11:00 AM | Laksh | Confirm whether suitable labelled flood-outcome data exists; post a brief go/no-go update before spending time on modelling. |
-| Sunday 2:00 PM | Laksh | ML experiment or model-readiness note, tests where applicable, and PR ready for review. |
-| Sunday 2:00 PM | Manasvi | Frontend deployed to HTTPS, production API/mocks configured, smoke-test results and deployment notes, PR ready for review. |
-| Sunday 2:00–3:30 PM | Mann + owners | Review PRs, resolve integration/configuration issues, verify deployment and API/report flow. |
-| Sunday 3:30 PM | Menaka | Demo script/video narrative updated to match verified functionality; no unverified claims. |
+| Sunday 2:00 PM | Laksh | Confirm whether suitable labelled flood-outcome data exists; post a brief go/no-go update before spending time on modelling. |
+| **Sunday 5:00 PM** | Laksh | ML experiment or model-readiness note, tests where applicable, and PR ready for review. |
+| **Sunday 5:00 PM** | Manasvi | Frontend deployed to HTTPS, production API/mocks configured, smoke-test results and deployment notes, PR ready for review. |
+| Sunday 5:00–8:00 PM | Mann + owners | Review PRs, resolve integration/configuration issues, verify deployment and API/report flow. |
+| Sunday 5:00 PM | Menaka | Demo script/video narrative updated to match verified functionality; no unverified claims. |
 | **Sunday 5:00 PM** | **Mann (release owner); all contributors** | **Hard code freeze.** Only release-blocking fixes after this point; no new features. |
-| Sunday 5:00–8:00 PM | Mann + team | Contingency for deployment failures, regressions, rollback, and clean-browser demo rehearsal. |
+| Sunday 8:00–11:59 PM | Mann + team | Contingency for deployment failures, regressions, rollback, and clean-browser demo rehearsal. |
 | Sunday 8:00–11:59 PM | Menaka + team | Final demo/video polish, run-through, backup screenshots/recording, and submission checks. No scope expansion. |
 
-If a task misses its deadline, ship the last known working path and document the limitation; do not push an untested change merely to meet the schedule.
+The 5:00 PM deadline applies to every owner's deliverable and is also the hard code freeze. Reserve the remaining hours until midnight for testing, integration fixes, rollback, rehearsal, and submission preparation. If a task misses the deadline, ship the last known working path and document the limitation; do not push an untested change merely to meet the schedule.
 
 ## Integration and release ownership
 
-- **Laksh:** owns the ML experiment, tests, documentation, and pull request.
-- **Manasvi:** owns frontend hosting, production configuration, smoke tests, deployment notes, and pull request/configuration handoff.
+- **Laksh:** owns the ML experiment, tests, documentation, and pull request by **5:00 PM IST**.
+- **Manasvi:** owns frontend hosting, production configuration, smoke tests, deployment notes, and pull request/configuration handoff by **5:00 PM IST**.
 - **Mann:** owns integration/release approval, production end-to-end verification, and demo freeze.
-- **Menaka:** updates the demo/video narrative only after the team confirms which new capabilities actually work.
+- **Menaka:** updates the demo/video narrative to reflect only verified functionality by **5:00 PM IST**.
 
 Use separate branches and small pull requests. Do not push unfinished work directly to `main`. Keep the existing heuristic and the last known working deployment available until replacements are verified. After both tasks, reserve 2:00–5:00 PM for integration and release verification. Freeze code at 5:00 PM IST on Sunday, 11 October 2026; use the remaining time until midnight only for contingency, rehearsal, and demo/submission preparation.
 
