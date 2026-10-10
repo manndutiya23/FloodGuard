@@ -143,6 +143,45 @@ export async function getReports(filters: ReportFilters = {}): Promise<Report[]>
   return body.data
 }
 
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+export async function uploadReportPhoto(file: File): Promise<string> {
+  if (!PHOTO_TYPES.has(file.type)) {
+    throw new ApiError('PHOTO_TYPE', 'Choose a JPEG, PNG, or WebP image.', null)
+  }
+  if (file.size < 1 || file.size > PHOTO_MAX_BYTES) {
+    throw new ApiError('PHOTO_SIZE', 'Photo must be smaller than 5 MB.', null)
+  }
+  const authorization = await request<{
+    data: {
+      upload_id: string
+      upload_url: string
+      fields: Record<string, string>
+      expires_in: number
+      max_bytes: number
+      content_type: string
+    }
+  }>('/reports/photo-upload', {
+    method: 'POST',
+    body: JSON.stringify({ content_type: file.type, file_name: file.name }),
+  })
+  const { upload_id, upload_url, fields } = authorization.data
+  const form = new FormData()
+  for (const [key, value] of Object.entries(fields)) form.append(key, value)
+  form.append('file', file)
+  let response: Response
+  try {
+    response = await fetch(upload_url, { method: 'POST', body: form })
+  } catch {
+    throw new ApiError('PHOTO_UPLOAD_NETWORK', 'Could not upload the photo. Check your connection or remove the photo and try again.', null)
+  }
+  if (!response.ok) {
+    throw new ApiError('PHOTO_UPLOAD_FAILED', 'The photo could not be uploaded. Please try again or remove it to submit without a photo.', response.status)
+  }
+  return upload_id
+}
+
 export async function createReport(report: NewReport): Promise<CreatedReport> {
   if (USE_MOCKS) {
     const created: Report = {
