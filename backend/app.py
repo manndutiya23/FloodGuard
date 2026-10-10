@@ -202,11 +202,61 @@ def _latest_usable_info(weather: dict[str, Any], evaluated_at: datetime) -> dict
 
 
 
+PHOTO_MAX_BYTES = 5 * 1024 * 1024
+PHOTO_URL_TTL_SECONDS = 300
+PHOTO_CONTENT_TYPES = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+
+
+class PhotoUploadRequest(BaseModel):
+    content_type: Literal["image/jpeg", "image/png", "image/webp"]
+    file_name: str = Field(min_length=1, max_length=180)
+
+
 class ReportCreate(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     category: Literal["waterlogging", "flooded_passage"]
     description: str | None = Field(default=None, max_length=280)
+    photo_upload_id: str | None = Field(default=None, min_length=36, max_length=36)
+
+
+def _photo_bucket_name() -> str:
+    bucket = os.getenv("PHOTO_BUCKET_NAME")
+    if not bucket:
+        raise HTTPException(status_code=503, detail="Photo storage is not configured.")
+    return bucket
+
+
+def _s3_client():
+    try:
+        import boto3
+        return boto3.client("s3", region_name=os.getenv("AWS_REGION", "ap-south-1"))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Photo storage is temporarily unavailable.") from exc
+
+
+def _upload_record_key(upload_id: str) -> str:
+    return f"UPLOAD#{upload_id}"
+
+
+def _verify_image_signature(s3, bucket: str, object_key: str, content_type: str) -> bool:
+    """Check actual file magic bytes rather than trusting the browser's MIME type."""
+    try:
+        response = s3.get_object(Bucket=bucket, Key=object_key, Range="bytes=0-15")
+        header = response["Body"].read(16)
+    except Exception:
+        return False
+    if content_type == "image/jpeg":
+        return header.startswith(bytes.fromhex("FFD8FF"))
+    if content_type == "image/png":
+        return header.startswith(bytes.fromhex("89504E470D0A1A0A"))
+    if content_type == "image/webp":
+        return len(header) >= 12 and header[:4] == b"RIFF" and header[8:12] == b"WEBP"
+    return False
 
 
 def _reports_table():
@@ -221,13 +271,70 @@ def _reports_table():
         raise HTTPException(status_code=503, detail="Report storage is temporarily unavailable.") from exc
 
 
+@app.post("/reports/photo-upload", tags=["incident reports"])
+def create_photo_upload(payload: PhotoUploadRequest) -> dict[str, Any]:
+    """Issue a short-lived private S3 upload form and track the pending upload."""
+    upload_id = str(uuid.uuid4())
+    object_key = f"report-photos/{upload_id}.{PHOTO_CONTENT_TYPES[payload.content_type]}"
+    bucket = _photo_bucket_name()
+    table = _reports_table()
+    s3 = _s3_client()
+    expires_at = int((_utc_now() + timedelta(seconds=PHOTO_URL_TTL_SECONDS)).timestamp())
+
+    try:
+        upload = s3.generate_presigned_post(
+            Bucket=bucket,
+            Key=object_key,
+            Fields={
+                "Content-Type": payload.content_type,
+                "x-amz-meta-upload-id": upload_id,
+                "success_action_status": "204",
+            },
+            Conditions=[
+                {"Content-Type": payload.content_type},
+                {"x-amz-meta-upload-id": upload_id},
+                {"success_action_status": "204"},
+                ["content-length-range", 1, PHOTO_MAX_BYTES],
+            ],
+            ExpiresIn=PHOTO_URL_TTL_SECONDS,
+        )
+        table.put_item(
+            Item={
+                "report_id": _upload_record_key(upload_id),
+                "record_type": "pending_photo_upload",
+                "upload_id": upload_id,
+                "object_key": object_key,
+                "content_type": payload.content_type,
+                "created_at": _iso_utc(_utc_now()),
+                "expires_at": expires_at,
+                "upload_status": "pending",
+            },
+            ConditionExpression="attribute_not_exists(report_id)",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Photo upload could not be initialized.") from exc
+
+    return {
+        "data": {
+            "upload_id": upload_id,
+            "upload_url": upload["url"],
+            "fields": upload["fields"],
+            "expires_in": PHOTO_URL_TTL_SECONDS,
+            "max_bytes": PHOTO_MAX_BYTES,
+            "content_type": payload.content_type,
+        }
+    }
+
+
 @app.get("/reports", tags=["incident reports"])
 def get_reports(
     status_filter: str | None = Query(default=None, alias="status"),
     ward_code: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=100),
 ) -> dict[str, Any]:
-    """Return recent persisted reports. Scan is acceptable for the small hackathon MVP."""
+    """Return recent persisted reports, excluding internal pending-upload records."""
     try:
         response = _reports_table().scan()
     except HTTPException:
@@ -235,7 +342,11 @@ def get_reports(
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Reports could not be retrieved.") from exc
 
-    reports = response.get("Items", [])
+    reports = [
+        report for report in response.get("Items", [])
+        if isinstance(report.get("report_id"), str)
+        and not report["report_id"].startswith("UPLOAD#")
+    ]
     if status_filter:
         if status_filter not in {"new", "reviewed", "resolved"}:
             raise HTTPException(status_code=400, detail="Invalid report status.")
@@ -248,8 +359,45 @@ def get_reports(
 
 @app.post("/reports", tags=["incident reports"], status_code=status.HTTP_201_CREATED)
 def create_report(payload: ReportCreate) -> dict[str, Any]:
-    """Persist a citizen report; trust no client-supplied workflow or verification fields."""
-    now = _iso_utc(_utc_now())
+    """Persist a citizen report and optionally attach a validated, completed photo upload."""
+    table = _reports_table()
+    now_dt = _utc_now()
+    now = _iso_utc(now_dt)
+    photo_metadata: dict[str, Any] | None = None
+
+    if payload.photo_upload_id:
+        upload_id = payload.photo_upload_id
+        try:
+            pending = table.get_item(Key={"report_id": _upload_record_key(upload_id)}).get("Item")
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Photo upload could not be validated.") from exc
+        if not pending or pending.get("upload_status") != "pending":
+            raise HTTPException(status_code=400, detail="Photo upload ID is invalid or already used.")
+        if int(pending.get("expires_at", 0)) < int(now_dt.timestamp()):
+            raise HTTPException(status_code=400, detail="Photo upload authorization has expired.")
+
+        bucket = _photo_bucket_name()
+        s3 = _s3_client()
+        object_key = pending["object_key"]
+        try:
+            head = s3.head_object(Bucket=bucket, Key=object_key)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Photo upload is incomplete or unavailable.") from exc
+        content_type = pending.get("content_type")
+        size = int(head.get("ContentLength", 0))
+        if size < 1 or size > PHOTO_MAX_BYTES or head.get("ContentType") != content_type:
+            raise HTTPException(status_code=400, detail="Uploaded photo has invalid size or content type.")
+        if head.get("Metadata", {}).get("upload-id") != upload_id:
+            raise HTTPException(status_code=400, detail="Uploaded photo metadata did not match its upload ID.")
+        if not _verify_image_signature(s3, bucket, object_key, content_type):
+            raise HTTPException(status_code=400, detail="Uploaded file is not a supported image.")
+        photo_metadata = {
+            "available": True,
+            "content_type": content_type,
+            "size_bytes": size,
+            "object_key": object_key,
+        }
+
     report = {
         "report_id": str(uuid.uuid4()),
         "ward_code": None,
@@ -262,16 +410,31 @@ def create_report(payload: ReportCreate) -> dict[str, Any]:
         "reported_at": now,
         "is_simulated": False,
     }
+    if photo_metadata:
+        report["photo"] = photo_metadata
+
     try:
-        _reports_table().put_item(
+        table.put_item(
             Item=report,
             ConditionExpression="attribute_not_exists(report_id)",
         )
+        if payload.photo_upload_id:
+            table.update_item(
+                Key={"report_id": _upload_record_key(payload.photo_upload_id)},
+                UpdateExpression="SET upload_status = :used, linked_report_id = :report_id",
+                ConditionExpression="upload_status = :pending",
+                ExpressionAttributeValues={
+                    ":used": "consumed",
+                    ":pending": "pending",
+                    ":report_id": report["report_id"],
+                },
+            )
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Report could not be saved.") from exc
     return {"data": report}
+
 
 @app.get("/health", tags=["system"])
 def health_check() -> dict[str, str]:
