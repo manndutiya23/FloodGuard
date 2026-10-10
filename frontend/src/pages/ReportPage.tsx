@@ -281,10 +281,12 @@ export default function ReportPage() {
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className="mb-1 p-0 font-semibold">Photo evidence (optional)</legend>
           <p className="m-0 text-[13px] text-muted">Add one JPEG, PNG, or WebP image up to 5 MB. Never enter floodwater to take a photo.</p>
+          {USE_MOCKS && <p className="m-0 text-[13px] text-high">Photo upload is unavailable in mock mode. Switch to the live API to attach evidence.</p>}
           <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#9aa7b6] bg-white px-3 py-2 text-sm font-semibold text-accent hover:bg-[#eef4fb]">
             {photo ? 'Choose a different photo' : 'Choose a photo'}
             <input
               type="file"
+              disabled={USE_MOCKS || submitting}
               accept="image/jpeg,image/png,image/webp"
               aria-label="Choose optional flood photo"
               className="sr-only"
