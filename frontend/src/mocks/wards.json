@@ -1,0 +1,250 @@
+{
+  "data": [
+    {
+      "ward_code": "A",
+      "population_potentially_exposed_within_250m_buffer": 33152,
+      "percentage_of_ward_population_potentially_exposed_percent": 17.9,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "B",
+      "population_potentially_exposed_within_250m_buffer": 53911,
+      "percentage_of_ward_population_potentially_exposed_percent": 43.4,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "C",
+      "population_potentially_exposed_within_250m_buffer": 36010,
+      "percentage_of_ward_population_potentially_exposed_percent": 21.7,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "D",
+      "population_potentially_exposed_within_250m_buffer": 105583,
+      "percentage_of_ward_population_potentially_exposed_percent": 30.4,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "E",
+      "population_potentially_exposed_within_250m_buffer": 147930,
+      "percentage_of_ward_population_potentially_exposed_percent": 37.5,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "F/N",
+      "population_potentially_exposed_within_250m_buffer": 355766,
+      "percentage_of_ward_population_potentially_exposed_percent": 66.8,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "F/S",
+      "population_potentially_exposed_within_250m_buffer": 144576,
+      "percentage_of_ward_population_potentially_exposed_percent": 40.3,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "G/N",
+      "population_potentially_exposed_within_250m_buffer": 304429,
+      "percentage_of_ward_population_potentially_exposed_percent": 50.3,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "G/S",
+      "population_potentially_exposed_within_250m_buffer": 153522,
+      "percentage_of_ward_population_potentially_exposed_percent": 41.7,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "H/E",
+      "population_potentially_exposed_within_250m_buffer": 329774,
+      "percentage_of_ward_population_potentially_exposed_percent": 61.6,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "H/W",
+      "population_potentially_exposed_within_250m_buffer": 200342,
+      "percentage_of_ward_population_potentially_exposed_percent": 61.2,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "K/E",
+      "population_potentially_exposed_within_250m_buffer": 187389,
+      "percentage_of_ward_population_potentially_exposed_percent": 22.5,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "K/W",
+      "population_potentially_exposed_within_250m_buffer": 266733,
+      "percentage_of_ward_population_potentially_exposed_percent": 35.9,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "L",
+      "population_potentially_exposed_within_250m_buffer": 312960,
+      "percentage_of_ward_population_potentially_exposed_percent": 34.5,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "M/E",
+      "population_potentially_exposed_within_250m_buffer": 275491,
+      "percentage_of_ward_population_potentially_exposed_percent": 34.1,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "M/W",
+      "population_potentially_exposed_within_250m_buffer": 182542,
+      "percentage_of_ward_population_potentially_exposed_percent": 45.1,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "N",
+      "population_potentially_exposed_within_250m_buffer": 108962,
+      "percentage_of_ward_population_potentially_exposed_percent": 17.4,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "P/N",
+      "population_potentially_exposed_within_250m_buffer": 143697,
+      "percentage_of_ward_population_potentially_exposed_percent": 15.4,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "P/S",
+      "population_potentially_exposed_within_250m_buffer": 143846,
+      "percentage_of_ward_population_potentially_exposed_percent": 31.0,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "R/C",
+      "population_potentially_exposed_within_250m_buffer": 145800,
+      "percentage_of_ward_population_potentially_exposed_percent": 25.6,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "R/N",
+      "population_potentially_exposed_within_250m_buffer": 175520,
+      "percentage_of_ward_population_potentially_exposed_percent": 41.1,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "R/S",
+      "population_potentially_exposed_within_250m_buffer": 209665,
+      "percentage_of_ward_population_potentially_exposed_percent": 30.0,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "S",
+      "population_potentially_exposed_within_250m_buffer": 190113,
+      "percentage_of_ward_population_potentially_exposed_percent": 26.4,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    },
+    {
+      "ward_code": "T",
+      "population_potentially_exposed_within_250m_buffer": 178542,
+      "percentage_of_ward_population_potentially_exposed_percent": 49.5,
+      "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+      "source_table": "XXVI - Persons potentially at risk due to floods",
+      "source_page": 112,
+      "underlying_population_data_year": 2011,
+      "data_type": "historical vulnerability baseline; not a live flood prediction"
+    }
+  ],
+  "meta": {
+    "data_type": "historical_vulnerability_baseline",
+    "source": "Mumbai Climate Action Plan - Climate & Air Pollution Risks and Vulnerability Assessment",
+    "source_page": 112,
+    "underlying_population_data_year": 2011
+  }
+}
