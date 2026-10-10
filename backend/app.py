@@ -3,11 +3,15 @@ from __future__ import annotations
 
 import csv
 import math
+from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+import os
+import uuid
+from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 from risk_engine import assess_risk
 from weather.open_meteo import fetch_hourly_precipitation
@@ -196,6 +200,78 @@ def _latest_usable_info(weather: dict[str, Any], evaluated_at: datetime) -> dict
         "is_simulated": bool(weather.get("is_simulated", False)),
     }
 
+
+
+class ReportCreate(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    category: Literal["waterlogging", "flooded_passage"]
+    description: str | None = Field(default=None, max_length=280)
+
+
+def _reports_table():
+    """Resolve DynamoDB lazily so local imports/tests do not require AWS configuration."""
+    table_name = os.getenv("REPORTS_TABLE_NAME")
+    if not table_name:
+        raise HTTPException(status_code=503, detail="Report storage is not configured.")
+    try:
+        import boto3
+        return boto3.resource("dynamodb").Table(table_name)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Report storage is temporarily unavailable.") from exc
+
+
+@app.get("/reports", tags=["incident reports"])
+def get_reports(
+    status_filter: str | None = Query(default=None, alias="status"),
+    ward_code: str | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=100),
+) -> dict[str, Any]:
+    """Return recent persisted reports. Scan is acceptable for the small hackathon MVP."""
+    try:
+        response = _reports_table().scan()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Reports could not be retrieved.") from exc
+
+    reports = response.get("Items", [])
+    if status_filter:
+        if status_filter not in {"new", "reviewed", "resolved"}:
+            raise HTTPException(status_code=400, detail="Invalid report status.")
+        reports = [report for report in reports if report.get("status") == status_filter]
+    if ward_code:
+        reports = [report for report in reports if report.get("ward_code") == ward_code]
+    reports.sort(key=lambda report: report.get("reported_at", ""), reverse=True)
+    return {"data": reports[:limit]}
+
+
+@app.post("/reports", tags=["incident reports"], status_code=status.HTTP_201_CREATED)
+def create_report(payload: ReportCreate) -> dict[str, Any]:
+    """Persist a citizen report; trust no client-supplied workflow or verification fields."""
+    now = _iso_utc(_utc_now())
+    report = {
+        "report_id": str(uuid.uuid4()),
+        "ward_code": None,
+        "latitude": Decimal(str(payload.latitude)),
+        "longitude": Decimal(str(payload.longitude)),
+        "category": payload.category,
+        "description": (payload.description or "").strip() or None,
+        "status": "new",
+        "verification_status": "unverified",
+        "reported_at": now,
+        "is_simulated": False,
+    }
+    try:
+        _reports_table().put_item(
+            Item=report,
+            ConditionExpression="attribute_not_exists(report_id)",
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Report could not be saved.") from exc
+    return {"data": report}
 
 @app.get("/health", tags=["system"])
 def health_check() -> dict[str, str]:

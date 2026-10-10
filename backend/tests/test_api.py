@@ -95,3 +95,61 @@ def test_risk_endpoint_keeps_latest_context_separate_if_window_incomplete(monkey
     assert result["latest_available_info"]["retrieved_at"] == "2026-10-09T09:59:00Z"
     assert result["latest_available_info"]["retrieval_age_minutes"] == 1
     assert any("complete three-hour future forecast window" in reason for reason in result["reasons"])
+
+
+
+def test_create_report_persists_server_controlled_fields(monkeypatch):
+    saved = {}
+
+    class FakeTable:
+        def put_item(self, **kwargs):
+            saved.update(kwargs["Item"])
+
+    monkeypatch.setenv("REPORTS_TABLE_NAME", "floodguard-reports")
+    monkeypatch.setattr(app_module, "_reports_table", lambda: FakeTable())
+
+    response = client.post(
+        "/reports",
+        json={
+            "latitude": 19.076,
+            "longitude": 72.8777,
+            "category": "waterlogging",
+            "description": "Water near Gate 2",
+            "status": "resolved",
+            "verification_status": "verified",
+            "ward_code": "F/N",
+            "is_simulated": True,
+        },
+    )
+
+    assert response.status_code == 201
+    report = response.json()["data"]
+    assert report["status"] == "new"
+    assert report["verification_status"] == "unverified"
+    assert report["is_simulated"] is False
+    assert report["ward_code"] is None
+    assert saved["report_id"] == report["report_id"]
+
+
+def test_create_report_rejects_invalid_category():
+    response = client.post(
+        "/reports",
+        json={"latitude": 19.076, "longitude": 72.8777, "category": "fire"},
+    )
+    assert response.status_code == 422
+
+
+def test_list_reports_filters_and_sorts(monkeypatch):
+    class FakeTable:
+        def scan(self):
+            return {"Items": [
+                {"report_id": "old", "status": "new", "ward_code": "A", "reported_at": "2026-10-09T09:00:00Z"},
+                {"report_id": "new", "status": "new", "ward_code": "A", "reported_at": "2026-10-09T10:00:00Z"},
+                {"report_id": "resolved", "status": "resolved", "ward_code": "A", "reported_at": "2026-10-09T11:00:00Z"},
+            ]}
+
+    monkeypatch.setenv("REPORTS_TABLE_NAME", "floodguard-reports")
+    monkeypatch.setattr(app_module, "_reports_table", lambda: FakeTable())
+    response = client.get("/reports?status=new&ward_code=A&limit=1")
+    assert response.status_code == 200
+    assert [item["report_id"] for item in response.json()["data"]] == ["new"]
