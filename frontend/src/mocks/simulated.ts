@@ -4,6 +4,7 @@
 // Ward exposure figures come from wards.json (the real reference CSV).
 
 import type { Report, RiskAssessment, RiskResponse, Weather } from '../types'
+import demoReports from '../../../data/sample/demo_reports.json'
 import wardsJson from './wards.json'
 
 const HOUR_MS = 60 * 60 * 1000
@@ -130,79 +131,18 @@ export function mockRisk(now = Date.now()): RiskResponse {
   }
 }
 
+// Same simulated dataset that backend/seed_demo_reports.py writes for live demos.
 export function mockReports(now = Date.now()): Report[] {
-  return [
-    {
-      report_id: 'sim-001',
-      ward_code: 'F/N',
-      latitude: 19.0335,
-      longitude: 72.8545,
-      category: 'waterlogging',
-      description: 'Water accumulating near Gate 2',
-      status: 'new',
-      verification_status: 'unverified',
-      reported_at: iso(now - 2 * MIN_MS),
-      is_simulated: true,
-    },
-    {
-      report_id: 'sim-002',
-      ward_code: 'F/N',
-      latitude: 19.0343,
-      longitude: 72.8551,
-      category: 'waterlogging',
-      description: 'Road outside the bus depot under water',
-      status: 'new',
-      verification_status: 'unverified',
-      reported_at: iso(now - 14 * MIN_MS),
-      is_simulated: true,
-    },
-    {
-      report_id: 'sim-003',
-      ward_code: 'H/E',
-      latitude: 19.0728,
-      longitude: 72.8526,
-      category: 'flooded_passage',
-      description: 'Railway subway closed, water above ankle',
-      status: 'new',
-      verification_status: 'unverified',
-      reported_at: iso(now - 11 * MIN_MS),
-      is_simulated: true,
-    },
-    {
-      report_id: 'sim-004',
-      ward_code: 'F/N',
-      latitude: 19.0262,
-      longitude: 72.8569,
-      category: 'flooded_passage',
-      description: 'Subway underpass knee-deep',
-      status: 'reviewed',
-      verification_status: 'verified',
-      reported_at: iso(now - 52 * MIN_MS),
-      is_simulated: true,
-    },
-    {
-      report_id: 'sim-005',
-      ward_code: null,
-      latitude: 19.0596,
-      longitude: 72.8295,
-      category: 'waterlogging',
-      description: 'Lane flooded outside market',
-      status: 'reviewed',
-      verification_status: 'unverified',
-      reported_at: iso(now - 100 * MIN_MS),
-      is_simulated: true,
-    },
-    {
-      report_id: 'sim-006',
-      ward_code: 'K/W',
-      latitude: 19.1197,
-      longitude: 72.8464,
-      category: 'waterlogging',
-      description: 'Water cleared from junction',
-      status: 'resolved',
-      verification_status: 'verified',
-      reported_at: iso(now - 3 * HOUR_MS),
-      is_simulated: true,
-    },
-  ]
+  return demoReports.reports.map((r) => ({
+    report_id: r.report_id,
+    ward_code: r.ward_code,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    category: r.category as Report['category'],
+    description: r.description,
+    status: r.status as Report['status'],
+    verification_status: r.verification_status as Report['verification_status'],
+    reported_at: iso(now - r.minutes_ago * MIN_MS),
+    is_simulated: true,
+  }))
 }

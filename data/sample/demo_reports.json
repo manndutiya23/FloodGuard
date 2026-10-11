@@ -1,0 +1,141 @@
+{
+  "dataset": "floodguard-demo-reports",
+  "version": 1,
+  "notice": "SIMULATED demonstration reports. Not real citizen observations or flood records. Every item is stored with is_simulated=true and a report_id starting with 'demo-'.",
+  "time_rule": "reported_at is computed at seed time as (now - minutes_ago), so the demo always shows recent reports.",
+  "ward_rule": "ward_code was matched by point-in-polygon against data/reference/mumbai_ward_boundaries.geojson (positions swapped to lng/lat). null means deliberately left unmatched to demonstrate that state.",
+  "reports": [
+    {
+      "report_id": "demo-001",
+      "minutes_ago": 4,
+      "latitude": 19.0287,
+      "longitude": 72.8566,
+      "ward_code": "F/N",
+      "category": "waterlogging",
+      "description": "Simulated: water collecting at the junction, cars slowing down",
+      "status": "new",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-002",
+      "minutes_ago": 17,
+      "latitude": 19.0293,
+      "longitude": 72.8571,
+      "ward_code": "F/N",
+      "category": "waterlogging",
+      "description": "Simulated: road near the circle ankle-deep",
+      "status": "new",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-003",
+      "minutes_ago": 9,
+      "latitude": 19.0016,
+      "longitude": 72.8424,
+      "ward_code": "F/S",
+      "category": "waterlogging",
+      "description": "Simulated: knee-deep water on the main road, buses diverted",
+      "status": "new",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-004",
+      "minutes_ago": 23,
+      "latitude": 19.1186,
+      "longitude": 72.8466,
+      "ward_code": "K/W",
+      "category": "flooded_passage",
+      "description": "Simulated: subway closed, water above ankle level",
+      "status": "reviewed",
+      "verification_status": "verified"
+    },
+    {
+      "report_id": "demo-005",
+      "minutes_ago": 31,
+      "latitude": 19.079,
+      "longitude": 72.8402,
+      "ward_code": "H/W",
+      "category": "flooded_passage",
+      "description": "Simulated: underpass flooded, pedestrians turning back",
+      "status": "new",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-006",
+      "minutes_ago": 38,
+      "latitude": 19.0655,
+      "longitude": 72.879,
+      "ward_code": "L",
+      "category": "waterlogging",
+      "description": "Simulated: lane outside the market under water",
+      "status": "new",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-007",
+      "minutes_ago": 46,
+      "latitude": 19.0415,
+      "longitude": 72.862,
+      "ward_code": "F/N",
+      "category": "flooded_passage",
+      "description": "Simulated: railway subway impassable for two-wheelers",
+      "status": "reviewed",
+      "verification_status": "verified"
+    },
+    {
+      "report_id": "demo-008",
+      "minutes_ago": 58,
+      "latitude": 19.187,
+      "longitude": 72.8486,
+      "ward_code": "P/N",
+      "category": "flooded_passage",
+      "description": "Simulated: subway partly flooded, traffic police present",
+      "status": "reviewed",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-009",
+      "minutes_ago": 72,
+      "latitude": 19.0522,
+      "longitude": 72.9005,
+      "ward_code": "M/W",
+      "category": "waterlogging",
+      "description": "Simulated: water near the bus stop, draining slowly",
+      "status": "new",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-010",
+      "minutes_ago": 95,
+      "latitude": 19.0596,
+      "longitude": 72.8295,
+      "ward_code": null,
+      "category": "waterlogging",
+      "description": "Simulated: side street flooded (ward intentionally unmatched for demo)",
+      "status": "new",
+      "verification_status": "unverified"
+    },
+    {
+      "report_id": "demo-011",
+      "minutes_ago": 150,
+      "latitude": 19.086,
+      "longitude": 72.9081,
+      "ward_code": "N",
+      "category": "waterlogging",
+      "description": "Simulated: water cleared from the junction",
+      "status": "resolved",
+      "verification_status": "verified"
+    },
+    {
+      "report_id": "demo-012",
+      "minutes_ago": 210,
+      "latitude": 18.979,
+      "longitude": 72.8335,
+      "ward_code": "E",
+      "category": "waterlogging",
+      "description": "Simulated: earlier waterlogging has receded",
+      "status": "resolved",
+      "verification_status": "unverified"
+    }
+  ]
+}
