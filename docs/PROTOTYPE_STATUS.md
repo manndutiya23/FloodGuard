@@ -17,17 +17,26 @@ This document separates behavior exercised against the current deployment from p
 - API Gateway and FastAPI CORS configuration were adjusted to support the local frontend at `http://localhost:5173`.
 - The Lambda package was rebuilt and deployed after the CORS and regional S3 endpoint changes.
 
+### Added on 11 October 2026 (afternoon)
+
+- **Production frontend:** https://main.d9c7imvqs8ukr.amplifyapp.com (AWS Amplify, branch `main`), using the deployed API with mock mode disabled. Details and smoke-test results: [Frontend deployment runbook](FRONTEND_DEPLOYMENT.md#10-deployment-record).
+- **CORS:** API Gateway and FastAPI now allow `https://main.d9c7imvqs8ukr.amplifyapp.com` as well as `http://localhost:5173`. Preflight requests reach the Lambda through the `ANY /{proxy+}` route, so the FastAPI origin list must include every frontend origin, not only the API Gateway setting.
+- **`PATCH /reports/{report_id}`** is deployed. Verified on the live API: status updated to `reviewed`, `verification_status` unchanged, unknown IDs return 404.
+- **Server-side ward matching** is deployed. New reports get `ward_code` from their coordinates using `data/reference/mumbai_ward_boundaries.geojson` (verified: a report at 19.0287, 72.8566 was stored with `F/N`). Client-supplied ward codes are ignored; points outside every ward get `null`. Reports created before this change keep `ward_code: null`.
+- **Lambda rollback points:** published version 1 (code before the PATCH/ward deploy) and version 2 (code before the Amplify CORS origin change). `$LATEST` runs the current code.
+- **Demo data:** 12 simulated reports and a seed script are in `data/sample/` (see its README). They are not loaded into the production table unless the team runs the seed script for a demo.
+
 These checks verify one successful end-to-end photo-report path. They do not prove that all error conditions, access-control scenarios, or operational requirements have been tested.
 
 ## Current functional areas
 
 | Area | Current state | Qualification |
 |---|---|---|
-| Frontend | React/TypeScript/Vite application | Mock mode exists; use the configured non-mock mode to exercise deployed APIs. |
+| Frontend | React/TypeScript/Vite application, deployed on Amplify | Production build verified in non-mock mode. Mock mode remains for local development. |
 | API | FastAPI on Lambda behind API Gateway HTTP API | Health endpoint verified. |
 | Weather/risk | Weather adapter and rule-based risk engine are present | Risk scores are heuristic and must be presented with provenance, freshness, scope, and limitations. |
 | Historical exposure | Ward-level reference CSV and supporting documentation | Historical vulnerability context, not a live flood boundary or calibrated prediction. |
-| Citizen reports | Create/list workflow and DynamoDB persistence | Report workflow status is separate from verification status. |
+| Citizen reports | Create/list/status-update workflow and DynamoDB persistence; ward derived from coordinates | Report workflow status is separate from verification status. |
 | Photo evidence | Presigned upload to private S3; server validates object before linking | Successful upload-and-report flow verified. |
 | Responder dashboard | Report queue/status workflow prototype | No responder sign-in or backend authorization boundary yet. Do not treat as secure operational access. |
 | Responder photo viewing | Not implemented | Requires authenticated/authorized API access before issuing short-lived download URLs. |

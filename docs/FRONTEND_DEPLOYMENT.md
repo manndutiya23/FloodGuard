@@ -6,9 +6,7 @@
 
 ## Current deployment status
 
-At the time this runbook was first created, the Amplify app had **not yet been created**. The production website URL, Amplify app ID, production API URL, and end-to-end smoke-test results therefore remain unconfirmed. Update the deployment record at the end of this document only after each item is verified in the AWS console or browser.
-
-This file documents the intended setup; it is **not evidence that a deployment or production test has succeeded**.
+**Deployed and verified on 11 October 2026.** The production site is live at **https://main.d9c7imvqs8ukr.amplifyapp.com** (Amplify app `FloodGuard`, ID `d9c7imvqs8ukr`, region `ap-south-1`, branch `main`) and uses the deployed API with mock mode disabled. See the [deployment record](#10-deployment-record) for exactly what was verified and what was not.
 
 ## Scope
 
@@ -114,6 +112,12 @@ Do not use a wildcard origin as a shortcut. Do not change API Gateway, Lambda, I
 
 If the home page loads but direct navigation or browser refresh on a frontend route (for example, `/report` or `/responder`) returns 404, review **Hosting → Rewrites and redirects** in Amplify. Add the official Amplify single-page-app rewrite to serve `/index.html` with status 200 for frontend routes. Preserve existing rules and avoid rewriting real static asset requests incorrectly.
 
+Rule applied to the production app (11 October 2026). It serves `/index.html` for routes without a file extension and leaves static assets, including the ward boundary `.geojson`, untouched:
+
+| Source address | Target | Type |
+| --- | --- | --- |
+| `</^[^.]+$\|\.(?!(css\|gif\|ico\|jpg\|js\|png\|txt\|svg\|woff\|woff2\|ttf\|map\|json\|webp\|geojson)$)([^.]+$)/>` | `/index.html` | 200 (Rewrite) |
+
 AWS reference: [Redirects and rewrites examples](https://docs.aws.amazon.com/amplify/latest/userguide/redirect-rewrite-examples.html).
 
 ## 7. Production smoke test
@@ -137,7 +141,7 @@ Use harmless test data and coordinate cleanup of any test report with the backen
 | Symptom | What to check |
 | --- | --- |
 | Amplify build fails | Read the first meaningful build error; confirm repository branch, app root `frontend`, lockfile, `npm ci`, `npm run build`, and artifact directory `dist`. |
-| Site loads but shows mock data | Confirm `VITE_USE_MOCKS=false` in Amplify environment variables and trigger a fresh build. |
+| Site loads but shows mock data | Confirm `VITE_USE_MOCKS=false` in Amplify environment variables and trigger a fresh build. Vite bakes `VITE_*` values in at build time, so variables added after a build have no effect until the next build. (This happened on the first deployment: build 1 finished at 15:34 IST, the variables were saved at 15:35 IST, and the site served mock data until build 2.) |
 | API requests fail with CORS errors | Confirm the browser's exact HTTPS origin has been allowed by the API Gateway/FastAPI owner; inspect Network details. |
 | API returns 404 | Verify `VITE_API_BASE_URL` includes the correct base URL/stage and does not contain an unintended route suffix. |
 | Report submission fails | Inspect the failing Network request and response; confirm report endpoint availability and CORS with the backend owner. |
@@ -152,21 +156,21 @@ Keep deployment documentation updated when the website URL, connected branch, AP
 
 ## 10. Deployment record
 
-Fill this record in only after confirming the information. Do not mark the deployment complete until the live site and the required smoke tests have been checked.
-
 | Item | Verified value / status |
 | --- | --- |
-| Amplify app name / ID | Pending — fill after app creation |
-| AWS Region | Pending — fill after app creation |
-| Connected repository and branch | Expected: `manndutiya23/FloodGuard`, `main`; confirm in Amplify |
-| Monorepo app root | Expected: `frontend`; confirm in Amplify |
-| Amplify HTTPS URL | Pending — fill after successful deployment |
-| Production API URL | Pending — obtain from backend owner; do not add credentials |
-| Production mock mode disabled | Pending — verify environment variable and live UI |
-| API CORS confirmed for Amplify origin | Pending — backend owner confirmation |
-| Report submission and persistence | Pending — record actual smoke-test result |
-| Photo upload | Pending / not tested until verified |
-| Last verified build / date | Pending — fill after successful build |
+| Amplify app name / ID | `FloodGuard` / `d9c7imvqs8ukr` (verified with the Amplify CLI/API) |
+| AWS Region | `ap-south-1` |
+| Connected repository and branch | `manndutiya23/FloodGuard`, `main` (stage: PRODUCTION) |
+| Monorepo app root | `frontend` (`AMPLIFY_MONOREPO_APP_ROOT`) |
+| Amplify HTTPS URL | https://main.d9c7imvqs8ukr.amplifyapp.com |
+| Production API URL | `https://00kcxmlp42.execute-api.ap-south-1.amazonaws.com/` (`VITE_API_BASE_URL`) |
+| Production mock mode disabled | Verified: `VITE_USE_MOCKS=false`; build 2 bundle contains the API URL; live UI shows "API connected" with live weather, risk and reports and no "Simulated" badges |
+| API CORS confirmed for Amplify origin | Verified: API Gateway CORS and FastAPI `CORSMiddleware` allow `https://main.d9c7imvqs8ukr.amplifyapp.com` and `http://localhost:5173`; `GET` and `POST`/`PATCH` preflights from the Amplify origin return 200; an unlisted origin receives no CORS header |
+| SPA routes | Verified: `/`, `/report`, `/responder` and `/?ward=F/N` return 200 on direct load; the boundary GeoJSON still loads (`application/geo+json`) |
+| Report submission and persistence | Verified against the live API with curl (not through the browser form): `POST /reports` returned 201 with `ward_code: "F/N"`, `PATCH` set `status: reviewed` with verification unchanged, and the test report was then deleted |
+| Photo upload | Not re-tested in this deployment (previously verified by the backend owner; see `docs/PROTOTYPE_STATUS.md`) |
+| Browser-form report submission from the live site | Not yet tested; run before the demo |
+| Last verified build / date | Amplify job 2 (RELEASE), SUCCEED, 11 October 2026 |
 
 ## Official AWS references
 
