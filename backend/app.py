@@ -11,6 +11,7 @@ import uuid
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from risk_engine import assess_risk
@@ -21,6 +22,13 @@ app = FastAPI(
     title="FloodGuard API",
     description="API for Mumbai hyperlocal flood intelligence.",
     version="0.3.0",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["content-type", "authorization"],
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -235,9 +243,18 @@ def _photo_bucket_name() -> str:
 def _s3_client():
     try:
         import boto3
-        return boto3.client("s3", region_name=os.getenv("AWS_REGION", "ap-south-1"))
+
+        region = os.getenv("AWS_REGION", "ap-south-1")
+        return boto3.client(
+            "s3",
+            region_name=region,
+            endpoint_url=f"https://s3.{region}.amazonaws.com",
+        )
     except Exception as exc:
-        raise HTTPException(status_code=503, detail="Photo storage is temporarily unavailable.") from exc
+        raise HTTPException(
+            status_code=503,
+            detail="Photo storage is temporarily unavailable.",
+        ) from exc
 
 
 class ReportStatusUpdate(BaseModel):
