@@ -11,15 +11,24 @@ import uuid
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from risk_engine import assess_risk
+from ward_lookup import find_ward
 from weather.open_meteo import fetch_hourly_precipitation
 
 app = FastAPI(
     title="FloodGuard API",
     description="API for Mumbai hyperlocal flood intelligence.",
     version="0.3.0",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["content-type", "authorization"],
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -234,13 +243,35 @@ def _photo_bucket_name() -> str:
 def _s3_client():
     try:
         import boto3
-        return boto3.client("s3", region_name=os.getenv("AWS_REGION", "ap-south-1"))
+
+        region = os.getenv("AWS_REGION", "ap-south-1")
+        return boto3.client(
+            "s3",
+            region_name=region,
+            endpoint_url=f"https://s3.{region}.amazonaws.com",
+        )
     except Exception as exc:
-        raise HTTPException(status_code=503, detail="Photo storage is temporarily unavailable.") from exc
+        raise HTTPException(
+            status_code=503,
+            detail="Photo storage is temporarily unavailable.",
+        ) from exc
+
+
+class ReportStatusUpdate(BaseModel):
+    status: Literal["new", "reviewed", "resolved"]
 
 
 def _upload_record_key(upload_id: str) -> str:
     return f"UPLOAD#{upload_id}"
+
+
+def _match_ward(latitude: float, longitude: float) -> str | None:
+    """Derive the ward from boundary geometry; client-supplied ward codes are not trusted."""
+    try:
+        return find_ward(latitude, longitude)
+    except Exception:
+        # Missing or unreadable boundary data must not block report submission.
+        return None
 
 
 def _verify_image_signature(s3, bucket: str, object_key: str, content_type: str) -> bool:
@@ -400,7 +431,7 @@ def create_report(payload: ReportCreate) -> dict[str, Any]:
 
     report = {
         "report_id": str(uuid.uuid4()),
-        "ward_code": None,
+        "ward_code": _match_ward(payload.latitude, payload.longitude),
         "latitude": Decimal(str(payload.latitude)),
         "longitude": Decimal(str(payload.longitude)),
         "category": payload.category,
@@ -434,6 +465,33 @@ def create_report(payload: ReportCreate) -> dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Report could not be saved.") from exc
     return {"data": report}
+
+
+@app.patch("/reports/{report_id}", tags=["incident reports"])
+def update_report_status(report_id: str, payload: ReportStatusUpdate) -> dict[str, Any]:
+    """Update a report's workflow status only. Verification status is never changed here.
+
+    Prototype limitation: this endpoint has no responder authentication/authorization yet.
+    """
+    if report_id.startswith("UPLOAD#"):
+        raise HTTPException(status_code=404, detail="Report not found.")
+    table = _reports_table()
+    try:
+        response = table.update_item(
+            Key={"report_id": report_id},
+            UpdateExpression="SET #status = :status, status_updated_at = :updated_at",
+            ConditionExpression="attribute_exists(report_id)",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={":status": payload.status, ":updated_at": _iso_utc(_utc_now())},
+            ReturnValues="ALL_NEW",
+        )
+    except Exception as exc:
+        error_response = getattr(exc, "response", None)
+        error_code = error_response.get("Error", {}).get("Code") if isinstance(error_response, dict) else None
+        if error_code == "ConditionalCheckFailedException":
+            raise HTTPException(status_code=404, detail="Report not found.") from exc
+        raise HTTPException(status_code=503, detail="Report status could not be updated.") from exc
+    return {"data": response.get("Attributes", {})}
 
 
 @app.get("/health", tags=["system"])

@@ -1,3 +1,4 @@
+import pytest
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
@@ -127,7 +128,8 @@ def test_create_report_persists_server_controlled_fields(monkeypatch):
     assert report["status"] == "new"
     assert report["verification_status"] == "unverified"
     assert report["is_simulated"] is False
-    assert report["ward_code"] is None
+    # The ward comes from boundary geometry, not from the client-supplied "F/N".
+    assert report["ward_code"] == "L"
     assert saved["report_id"] == report["report_id"]
 
 
@@ -153,3 +155,86 @@ def test_list_reports_filters_and_sorts(monkeypatch):
     response = client.get("/reports?status=new&ward_code=A&limit=1")
     assert response.status_code == 200
     assert [item["report_id"] for item in response.json()["data"]] == ["new"]
+
+
+def test_create_report_leaves_ward_null_outside_boundaries(monkeypatch):
+    class FakeTable:
+        def put_item(self, **kwargs):
+            pass
+
+    monkeypatch.setenv("REPORTS_TABLE_NAME", "floodguard-reports")
+    monkeypatch.setattr(app_module, "_reports_table", lambda: FakeTable())
+    response = client.post("/reports", json={"latitude": 19.05, "longitude": 72.70, "category": "waterlogging"})
+    assert response.status_code == 201
+    assert response.json()["data"]["ward_code"] is None
+
+
+def test_create_report_still_saves_if_ward_lookup_fails(monkeypatch):
+    class FakeTable:
+        def put_item(self, **kwargs):
+            pass
+
+    def broken_lookup(latitude, longitude):
+        raise OSError("boundary file missing")
+
+    monkeypatch.setenv("REPORTS_TABLE_NAME", "floodguard-reports")
+    monkeypatch.setattr(app_module, "_reports_table", lambda: FakeTable())
+    monkeypatch.setattr(app_module, "find_ward", broken_lookup)
+    response = client.post("/reports", json={"latitude": 19.076, "longitude": 72.8777, "category": "waterlogging"})
+    assert response.status_code == 201
+    assert response.json()["data"]["ward_code"] is None
+
+
+class ConditionalCheckFailed(Exception):
+    response = {"Error": {"Code": "ConditionalCheckFailedException"}}
+
+
+def test_update_report_status_changes_only_workflow_status(monkeypatch):
+    calls = {}
+
+    class FakeTable:
+        def update_item(self, **kwargs):
+            calls.update(kwargs)
+            return {"Attributes": {
+                "report_id": "abc",
+                "status": kwargs["ExpressionAttributeValues"][":status"],
+                "verification_status": "unverified",
+            }}
+
+    monkeypatch.setenv("REPORTS_TABLE_NAME", "floodguard-reports")
+    monkeypatch.setattr(app_module, "_reports_table", lambda: FakeTable())
+    response = client.patch("/reports/abc", json={"status": "reviewed", "verification_status": "verified"})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == "reviewed"
+    assert response.json()["data"]["verification_status"] == "unverified"
+    assert calls["Key"] == {"report_id": "abc"}
+    assert calls["ConditionExpression"] == "attribute_exists(report_id)"
+    assert "verification_status" not in calls["UpdateExpression"]
+
+
+def test_update_report_status_returns_404_for_unknown_report(monkeypatch):
+    class FakeTable:
+        def update_item(self, **kwargs):
+            raise ConditionalCheckFailed()
+
+    monkeypatch.setenv("REPORTS_TABLE_NAME", "floodguard-reports")
+    monkeypatch.setattr(app_module, "_reports_table", lambda: FakeTable())
+    response = client.patch("/reports/missing", json={"status": "resolved"})
+    assert response.status_code == 404
+
+
+def test_update_report_status_rejects_upload_records_and_invalid_status(monkeypatch):
+    monkeypatch.setattr(app_module, "_reports_table", lambda: pytest.fail("must not reach the table"))
+    assert client.patch("/reports/UPLOAD%23abc", json={"status": "reviewed"}).status_code == 404
+    assert client.patch("/reports/abc", json={"status": "verified"}).status_code == 422
+
+
+def test_update_report_status_returns_503_on_storage_error(monkeypatch):
+    class FakeTable:
+        def update_item(self, **kwargs):
+            raise RuntimeError("throttled")
+
+    monkeypatch.setenv("REPORTS_TABLE_NAME", "floodguard-reports")
+    monkeypatch.setattr(app_module, "_reports_table", lambda: FakeTable())
+    assert client.patch("/reports/abc", json={"status": "reviewed"}).status_code == 503
