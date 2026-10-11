@@ -37,7 +37,7 @@ function nearbyCount(report: Report, all: Report[]): number {
 type StatusFilter = 'open' | ReportStatus | 'all'
 
 export default function ResponderDashboard() {
-  const reports = useAsync(() => getReports({ limit: 200 }))
+  const reports = useAsync(() => getReports({ limit: 100 }))
   const risk = useAsync(() => getRisk())
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('open')
   const [wardFilter, setWardFilter] = useState('')
