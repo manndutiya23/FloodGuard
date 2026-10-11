@@ -56,6 +56,14 @@ async function toApiError(response: Response): Promise<ApiError> {
   if (typeof obj.detail === 'string') {
     return new ApiError(`HTTP_${response.status}`, obj.detail, response.status)
   }
+  // FastAPI validation errors (422) list each problem as { loc, msg }.
+  if (Array.isArray(obj.detail) && obj.detail.length > 0) {
+    const messages = (obj.detail as { loc?: unknown[]; msg?: string }[]).map((d) => {
+      const field = Array.isArray(d.loc) ? d.loc.filter((part) => part !== 'body' && part !== 'query').join('.') : ''
+      return field ? `${field}: ${d.msg ?? 'invalid'}` : (d.msg ?? 'invalid')
+    })
+    return new ApiError('VALIDATION_ERROR', messages.join('; '), response.status)
+  }
   if (response.status === 404 || response.status === 405) {
     return new ApiError('NOT_AVAILABLE', 'This feature is not available on the API yet.', response.status)
   }
