@@ -4,6 +4,8 @@
 Amazon Environmental Hacks 2026 · Heat & Water track
 
 > **Current status: working prototype, not production-ready.** The deployed API and citizen report flow are operational. The photo upload → private S3 storage → report persistence path has been tested end to end. Responder authentication and protected responder-only access are not implemented yet.
+>
+> **Live site:** https://main.d9c7imvqs8ukr.amplifyapp.com (AWS Amplify, live API, mock mode off). See [prototype status](docs/PROTOTYPE_STATUS.md) for what has been verified.
 
 ## The problem
 

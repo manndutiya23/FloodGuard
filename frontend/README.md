@@ -22,9 +22,18 @@ Open http://localhost:5173.
 | `true` (default) | Simulated data from `src/mocks/`. Every simulated item is labelled. Submitted reports live in memory and reset on reload. |
 | `false` | Calls the API at `VITE_API_BASE_URL`. |
 
-For the local FastAPI backend, keep `VITE_API_BASE_URL=/api`. The Vite dev server proxies `/api/*` to `VITE_API_PROXY_TARGET` (default `http://127.0.0.1:8000`), because the backend does not enable CORS yet. Start the backend first (see `backend/README.md`). Restart `npm run dev` after editing `.env.local`.
+For the local FastAPI backend, keep `VITE_API_BASE_URL=/api`. The Vite dev server proxies `/api/*` to `VITE_API_PROXY_TARGET` (default `http://127.0.0.1:8000`). Start the backend first (see `backend/README.md`). Restart `npm run dev` after editing `.env.local`.
 
-For a deployed API Gateway stage, set `VITE_API_BASE_URL` to its full URL. CORS must then be enabled on the API.
+To use the deployed API from local development, set `VITE_API_BASE_URL=https://00kcxmlp42.execute-api.ap-south-1.amazonaws.com` and `VITE_USE_MOCKS=false`. The API allows the `http://localhost:5173` origin.
+
+## Production (AWS Amplify)
+
+Live site: https://main.d9c7imvqs8ukr.amplifyapp.com. Full runbook and verified results: [`docs/FRONTEND_DEPLOYMENT.md`](../docs/FRONTEND_DEPLOYMENT.md).
+
+- Amplify builds from `main` with app root `frontend` and env vars `VITE_API_BASE_URL` (the API URL) and `VITE_USE_MOCKS=false`.
+- **`VITE_*` values are baked in at build time.** If you add or change them, trigger a new build; otherwise the site keeps the old values. A missing `VITE_USE_MOCKS` currently means mock mode.
+- A single-page-app rewrite rule serves `index.html` for `/report` and `/responder` while leaving static assets (including the `.geojson`) alone.
+- A new frontend origin must be added to the API's CORS settings in both API Gateway and FastAPI (see `backend/README.md`).
 
 Never put secrets or AWS credentials in `VITE_` variables; they are bundled into browser code.
 
@@ -53,9 +62,9 @@ src/
 - A report's ward is matched by point-in-polygon against those boundaries. If the point is outside every ward, `ward_code` is left `null` rather than guessed.
 - Scores are a heuristic index, not a flood probability. The UI shows reasons, data status, timestamps and the single-point weather limitation alongside every score.
 
-## Not yet available on the backend
+## Backend endpoints used
 
-`GET/POST /reports` and `PATCH /reports/{id}` are not implemented in the API yet. In live mode, the report form and responder queue show a "not available on the API yet" message; use mock mode for those screens until they ship.
+`GET /health`, `/wards`, `/weather`, `/risk`, `/reports`; `POST /reports` (and `/reports/photo-upload` for optional photos); `PATCH /reports/{id}` for responder status updates. All are deployed. The responder view has no sign-in yet, so treat it as a prototype.
 
 ## Scripts
 

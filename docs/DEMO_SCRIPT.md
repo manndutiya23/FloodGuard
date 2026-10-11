@@ -5,7 +5,9 @@
 
 ## Before recording
 
-- Confirm the frontend is configured for the intended API and mock mode is disabled.
+- Use the production site: https://main.d9c7imvqs8ukr.amplifyapp.com. The header should say "API connected", not "Mock data mode".
+- Optional, team-approved only: load the 12 **simulated** demo reports shortly before recording so the map and responder queue are not empty (`python backend/seed_demo_reports.py --apply` with `REPORTS_TABLE_NAME=floodguard-reports`; see `data/sample/README.md`). They appear with a "Simulated" badge. Remove them afterwards with `--remove --apply`.
+- Deep link for a ready-made view: `/?ward=F/N&layer=risk` opens ward F/N on the risk layer.
 - Open the Mumbai map/dashboard and confirm the API health endpoint responds.
 - Use a prepared, harmless JPEG/PNG/WebP image under 5 MiB.
 - Ensure the responder dashboard is presented honestly as a prototype; responder sign-in and backend authorization are not implemented yet.
@@ -37,7 +39,9 @@ Show the actual confirmation and report reference. The tested flow has returned 
 
 ### 4. Show the report workflow (0:55–1:15)
 
-Open the report list/responder dashboard and find the newly created report. Show its workflow and verification status accurately.
+Open the report list/responder dashboard and find the newly created report. Show its workflow and verification status accurately. New reports show the ward derived from their location.
+
+If simulated demo reports are loaded, say so: "The reports marked Simulated are demonstration data; the report we just submitted is real."
 
 “New reports are unverified until reviewed. Marking a report reviewed is a workflow action; it does not automatically certify the report as verified.”
 
